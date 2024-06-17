@@ -42,6 +42,30 @@ function App() {
     }
   };
 
+  // Function to fetch track data from Spotify API
+  const fetchTrackData = async (trackId) => {
+    try {
+      const accessToken = await fetchAccessToken();
+      if (!accessToken) {
+        throw new Error('Failed to obtain access token');
+      }
+
+      const response = await axios.get(`https://api.spotify.com/v1/tracks/${trackId}`, {
+        headers: {
+          Authorization: `Bearer ${accessToken}`,
+        },
+      });
+
+      console.log(response.data); // Log the full response for inspection
+      setPopularity(response.data.popularity); // Set the popularity state
+      setError('');
+    } catch (error) {
+      console.error('Error fetching track data:', error);
+      setPopularity(null); // Reset popularity if there's an error
+      setError('Error fetching track data.');
+    }
+  };
+
   
   
   // This function makes a request to Spotify’s API to fetch the tracks from the USA Top 50 playlist.
@@ -72,31 +96,6 @@ function App() {
       setError('Error fetching playlist tracks.');
     } finally {
       setLoading(false);
-    }
-  };
-
-  
-  // Function to fetch track data from Spotify API
-  const fetchTrackData = async (trackId) => {
-    try {
-      const accessToken = await fetchAccessToken();
-      if (!accessToken) {
-        throw new Error('Failed to obtain access token');
-      }
-
-      const response = await axios.get(`https://api.spotify.com/v1/tracks/${trackId}`, {
-        headers: {
-          Authorization: `Bearer ${accessToken}`,
-        },
-      });
-
-      console.log(response.data); // Log the full response for inspection
-      setPopularity(response.data.popularity); // Set the popularity state
-      setError('');
-    } catch (error) {
-      console.error('Error fetching track data:', error);
-      setPopularity(null); // Reset popularity if there's an error
-      setError('Error fetching track data.');
     }
   };
   
@@ -135,28 +134,12 @@ const selectRandomTracks = (fetchedTracks) => {
   setNextTrack(fetchedTracks[randomIndex2]);
 };
 
-  // Function to handle user guess (higher or lower)
-  const handleGuess = (guessedHigher) => {
-    if (!currentTrack || !nextTrack) return;
-
-    const isCorrect = (guessedHigher && nextTrack.popularity > currentTrack.popularity) ||
-                      (!guessedHigher && nextTrack.popularity < currentTrack.popularity);
-    if (isCorrect) {
-      setScore(score + 1);
-      setCurrentTrack(nextTrack); // Move nextTrack to currentTrack
-      selectNewNextTrack(); // Select new random track for nextTrack
-    } else {
-      setGameOver(true);
-    }
-  };
-
-   // Function to select a new random track for nextTrack
-  const selectNewNextTrack = () => {
-    if (tracks.length < 2) {
-      console.error('Not enough tracks to play the game.');
-      return;
-    }
-
+// Function to select a new random track for nextTrack
+const selectNewNextTrack = () => {
+  if (tracks.length < 2) {
+    console.error('Not enough tracks to play the game.');
+    return;
+  }
     let randomIndex = Math.floor(Math.random() * tracks.length);
     while (tracks[randomIndex].id === currentTrack.id) {
       randomIndex = Math.floor(Math.random() * tracks.length);
@@ -164,6 +147,38 @@ const selectRandomTracks = (fetchedTracks) => {
     
     setNextTrack(tracks[randomIndex]);
   };
+
+ 
+
+  // Function to handle user guess (higher or lower)
+  const handleGuess = (guessedHigher) => {
+    if (!currentTrack || !nextTrack) return;
+
+    const isCorrect = (guessedHigher && nextTrack.popularity > currentTrack.popularity) ||
+                      (!guessedHigher && nextTrack.popularity < currentTrack.popularity);
+    if (isCorrect) {
+    setScore(score + 1);
+    setCurrentTrack(nextTrack); // Move nextTrack to currentTrack
+    selectNewNextTrack(); // Select new random track for nextTrack
+  } else {
+    if (nextTrack.popularity === currentTrack.popularity) {
+      // Handle tie scenario
+      console.log('Popularity is Tied!');
+      setCurrentTrack(nextTrack);
+      selectNewNextTrack(); // Select new random track for nextTrack
+    } else {
+      // Game over scenario
+      console.log('Game over: Incorrect guess');
+      setGameOver(true);
+    }
+  };
+
+
+  useEffect(() => {
+    if (tracks.length > 1) {
+      selectRandomTracks(tracks);
+    }
+  }, [tracks]);
 
    // Function to start the game
    const startGame = async () => {
@@ -182,10 +197,10 @@ const selectRandomTracks = (fetchedTracks) => {
   useEffect(() => {
     startGame();
   }, []);
-
+}
   return (
     <div className="App">
-      <h1>Spotify Track Popularity Checker & Higher or Lower Game</h1>
+      <h1>Spotify Track Popularity Higher or Lower Game</h1>
       <div>
         <label>Enter Spotify Track ID:</label>
         <input type="text" value={trackId} onChange={handleInputChange} />
@@ -214,6 +229,7 @@ const selectRandomTracks = (fetchedTracks) => {
         {nextTrack ? (
           <div>
             <p>{nextTrack.name} - {nextTrack.artists.map(artist => artist.name).join(', ')}</p>
+            <p>Popularity: {nextTrack.popularity}</p>
           </div>
         ) : loading ? (
           <p>Loading...</p>
@@ -234,6 +250,5 @@ const selectRandomTracks = (fetchedTracks) => {
     </div>
   );
 }
-
 
 export default App;
