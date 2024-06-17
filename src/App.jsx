@@ -1,6 +1,6 @@
 import { Box, Button, ChakraProvider, Flex, Heading, Text } from '@chakra-ui/react';
 import axios from 'axios';
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useRef } from 'react';
 
 const CLIENT_ID = import.meta.env.VITE_CLIENT_ID;
 const CLIENT_SECRET = import.meta.env.VITE_CLIENT_SECRET;
@@ -8,14 +8,18 @@ const PLAYLIST_ID = '37i9dQZEVXbLRQDuF5jeBp';
 
 function App() {
   const [tracks, setTracks] = useState([]);
-  const [currentIndex, setCurrentIndex] = useState(0);
+  const [currentIndex, setCurrentIndex] = useState(-1);
   const [score, setScore] = useState(0);
   const [gameOver, setGameOver] = useState(false);
   const [loading, setLoading] = useState(true);
+  const isInitialMount = useRef(true); // Track the initial mount 
 
-  useEffect(() => {
-    fetchPlaylistTracks();
-  }, []);
+    useEffect(() => {
+    if (isInitialMount.current) {
+      fetchPlaylistTracks();
+      isInitialMount.current = false; // Set to false after the first mount
+    }
+  }, []);
 
   const fetchAccessToken = async () => {
     const params = new URLSearchParams();
@@ -45,6 +49,7 @@ function App() {
       }));
       setTracks(shuffleArray(fetchedTracks));
       setLoading(false);
+      setCurrentIndex(0); // Set currentIndex to 0 after tracks are fetched
     } catch (error) {
       console.error('Error fetching playlist tracks:', error);
     }
@@ -56,7 +61,7 @@ function App() {
       [array[i], array[j]] = [array[j], array[i]];
     }
     return array;
-  }
+  };
 
   const handleGuess = (guessHigher) => {
     if (!tracks.length || currentIndex >= tracks.length - 1) {
@@ -83,49 +88,117 @@ function App() {
   const currentTrack = tracks[currentIndex];
   const nextTrack = tracks[currentIndex + 1] || {}; // Fallback for when reaching the end of the array
 
-  return (
-    <ChakraProvider>
-      <Heading as="h1" textAlign="center" >Spotify Popularity Game</Heading>
-      
-           
-        <Flex justify="start" align="start" h="1vh">
-            <Box h="50%" w="50%" textAlign="center" p={5} >
-            <Text fontSize="xl">{currentTrack.name} - {currentTrack.artists}</Text>
-            <Text fontSize="lg">Popularity: {currentTrack.popularity}</Text>
-            </Box>
-        </Flex>
-        <Flex justify="end" align="start" h="1vh">
-            <Box h="50%" w="50%" textAlign="center" p={5} >
-            <Text fontSize="xl">{nextTrack.name} - {nextTrack.artists}</Text>
-            <Text fontSize="lg">Popularity: ?</Text>
-            </Box>
-        </Flex>
-      <Flex justify="space-between" align="center" h="100vh" className="App" p={5}> 
-        <Box h="80%" w="50%" textAlign="center" p={5} style={{ backgroundImage: `url(${currentTrack.cover})`, backgroundSize: '100% 100%', filter: 'blur(1.5px)', backdropFilter: 'blur(10px)' }}>
-          
-          
-        </Box>
-        {!gameOver && (
-          <Box h="80%" w="50%" textAlign="center" p={5} style={{ backgroundImage: `url(${nextTrack.cover})`, backgroundSize: '100% 100%', filter: 'blur(1.5px)', backdropFilter: 'blur(10px)' }}>
-            <Text fontSize="xl">{nextTrack.name} - {nextTrack.artists}</Text>
-          </Box>
-        )}
-      </Flex>
-      <Flex justify="center" position="absolute" left="0" right="0" bottom="20px">
-        {gameOver ? (
-          <>
-            <Heading as="h2">Game Over! Your score: {score}</Heading>
-            <Button colorScheme="blue" onClick={() => window.location.reload()}>Play Again</Button>
-          </>
-        ) : (
-          <>
-            <Button colorScheme="blue" mr={4} onClick={() => handleGuess(true)}>Higher</Button>
-            <Button colorScheme="blue" onClick={() => handleGuess(false)}>Lower</Button>
-          </>
-        )}
-      </Flex>
-    </ChakraProvider>
-  );
-}
+
+return (
+    <ChakraProvider>
+      <Heading as="h1" textAlign="center">Statify</Heading>
+
+      <Flex justify="space-between" align="center" h="100vh" className="App" p={5} position="relative">
+        {/* Box for current track */}
+        <Box 
+          h="100%" 
+          w="50%" 
+          textAlign="center" 
+          p={5} 
+          style={{ 
+            position: 'relative', // Ensure relative positioning for nested elements
+            overflow: 'hidden', // Optional: Ensure no overflow of content
+            borderRadius: '10px' // Optional: Rounded corners
+          }}
+        >
+          {/* Background image with filter */}
+          <div 
+            style={{ 
+              backgroundImage: `url(${currentTrack.cover})`, 
+              backgroundSize: 'cover', 
+              backgroundPosition: 'center',
+              filter: 'brightness(0.55)', // Adjust brightness as needed
+              width: '100%', 
+              height: '100%',
+              position: 'absolute', 
+              top: 0, 
+              left: 0,
+              zIndex: 1, // Ensure background is behind text
+              borderRadius: '10px' // Optional: Rounded corners
+            }}
+          />
+          
+          {/* Text content */}
+          <div 
+            style={{ 
+              position: 'relative', // Ensure relative positioning for nested elements
+              zIndex: 2, // Ensure text is above background
+              color: 'white', // Text color
+              textAlign: 'center', // Center text
+              padding: '20px', // Padding around text
+              fontSize: '2.2rem', // Adjust font size as needed
+            }}
+          >
+            <b>{currentTrack.name}</b> by <b>{currentTrack.artists}</b>
+            <br />
+            has a popularity score of {currentTrack.popularity}
+          </div>
+        </Box>
+
+        {/* Box for next track */}
+        <Box 
+          h="100%" 
+          w="50%" 
+          textAlign="center" 
+          p={5} 
+          style={{ 
+            position: 'relative', // Ensure relative positioning for nested elements
+            overflow: 'hidden', // Optional: Ensure no overflow of content
+            borderRadius: '10px' // Optional: Rounded corners
+          }}
+        >
+          {/* Background image with filter */}
+          <div 
+            style={{ 
+              backgroundImage: `url(${nextTrack.cover})`, 
+              backgroundSize: 'cover', 
+              backgroundPosition: 'center',
+              filter: 'brightness(0.55)', // Adjust brightness as needed
+              width: '100%', 
+              height: '100%',
+              position: 'absolute', 
+              top: 0, 
+              left: 0,
+              zIndex: 1, // Ensure background is behind text
+              borderRadius: '10px' // Optional: Rounded corners
+            }}
+          />
+          
+          {/* Text content */}
+          <div 
+            style={{ 
+              position: 'relative', // Ensure relative positioning for nested elements
+              zIndex: 2, // Ensure text is above background
+              color: 'white', // Text color
+              textAlign: 'center', // Center text
+              padding: '20px', // Padding around text
+              fontSize: '2.2rem', // Adjust font size as needed
+            }}
+          >
+            {gameOver ? (
+              <div>
+                Game Over! Your score: {score}
+                <Button size="lg" colorScheme="white" ml={4} onClick={() => window.location.reload()}>Play Again</Button>
+              </div>
+            ) : (
+              <div>
+                Does "<b>{nextTrack.name}</b> by <b>{nextTrack.artists}</b>" have a higher or lower popularity score?
+                <div style={{ marginTop: '20px' }}>
+                  <Button size="xlg" colorScheme="white" onClick={() => handleGuess(true)}>Higher &#128200;</Button>
+                  <Button size="xlg" colorScheme="white" ml={24} onClick={() => handleGuess(false)}>Lower &#128201;</Button>
+                </div>
+              </div>
+            )}
+          </div>
+        </Box>
+      </Flex>
+    </ChakraProvider>
+  );
+};
 
 export default App;
