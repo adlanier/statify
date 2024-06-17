@@ -85,11 +85,25 @@ function App() {
 
   return (
     <ChakraProvider>
-      <Flex justify="space-between" align="center" h="100vh" className="App" p={5}>
+      <Heading as="h1" textAlign="center" >Spotify Popularity Game</Heading>
+      
+           
+        <Flex justify="start" align="start" h="1vh">
+            <Box h="50%" w="50%" textAlign="center" p={5} >
+            <Text fontSize="xl">{currentTrack.name} - {currentTrack.artists}</Text>
+            <Text fontSize="lg">Popularity: {currentTrack.popularity}</Text>
+            </Box>
+        </Flex>
+        <Flex justify="end" align="start" h="1vh">
+            <Box h="50%" w="50%" textAlign="center" p={5} >
+            <Text fontSize="xl">{nextTrack.name} - {nextTrack.artists}</Text>
+            <Text fontSize="lg">Popularity: ?</Text>
+            </Box>
+        </Flex>
+      <Flex justify="space-between" align="center" h="100vh" className="App" p={5}> 
         <Box h="80%" w="50%" textAlign="center" p={5} style={{ backgroundImage: `url(${currentTrack.cover})`, backgroundSize: '100% 100%', filter: 'blur(1.5px)', backdropFilter: 'blur(10px)' }}>
-          <Heading as="h1">Spotify Popularity Game</Heading>
-          <Text fontSize="xl">{currentTrack.name} - {currentTrack.artists}</Text>
-          <Text fontSize="lg">Popularity: {currentTrack.popularity}</Text>
+          
+          
         </Box>
         {!gameOver && (
           <Box h="80%" w="50%" textAlign="center" p={5} style={{ backgroundImage: `url(${nextTrack.cover})`, backgroundSize: '100% 100%', filter: 'blur(1.5px)', backdropFilter: 'blur(10px)' }}>
