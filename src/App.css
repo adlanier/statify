@@ -1,0 +1,19 @@
+.panel-container {
+    display: flex;
+    justify-content: space-between;
+    width: 100%;
+  }
+  
+  .panel {
+    width: 50%; /* Each panel takes up half the width of the container */
+    text-align: center; /* Center the text inside the panel */
+  }
+  
+  .button-container {
+    position: absolute;
+    bottom: 20px;
+    left: 50%;
+    transform: translateX(-50%);
+    text-align: center;
+  }
+  

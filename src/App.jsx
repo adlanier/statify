@@ -1,254 +1,117 @@
-import React, { useState, useEffect} from 'react';
+import { Box, Button, ChakraProvider, Flex, Heading, Text } from '@chakra-ui/react';
 import axios from 'axios';
+import { useEffect, useState } from 'react';
 
-// Spotify Client Credentials 
-const CLIENT_ID = 'c4e751b86d3042daa8e32268af650145';
-const CLIENT_SECRET = '56d40f1670e44c4c97a10c10348ed1ed';
+const CLIENT_ID = import.meta.env.VITE_CLIENT_ID;
+const CLIENT_SECRET = import.meta.env.VITE_CLIENT_SECRET;
 const PLAYLIST_ID = '37i9dQZEVXbLRQDuF5jeBp';
 
 function App() {
-  const [trackId, setTrackId] = useState('');
-  const [popularity, setPopularity] = useState(null);
-  const [tracks, setTracks] = useState([]);
-  const [loading, setLoading] = useState(false);
-  const [currentTrack, setCurrentTrack] = useState(null);
-  const [nextTrack, setNextTrack] = useState(null);
-  const [score, setScore] = useState(0);
-  const [gameOver, setGameOver] = useState(false);
-  const [error, setError] = useState('');
+  const [tracks, setTracks] = useState([]);
+  const [currentIndex, setCurrentIndex] = useState(0);
+  const [score, setScore] = useState(0);
+  const [gameOver, setGameOver] = useState(false);
+  const [loading, setLoading] = useState(true);
 
+  useEffect(() => {
+    fetchPlaylistTracks();
+  }, []);
 
-  // Function to handle input change
-  const handleInputChange = (event) => {
-    setTrackId(event.target.value);
-  };
+  const fetchAccessToken = async () => {
+    const params = new URLSearchParams();
+    params.append('grant_type', 'client_credentials');
+    const response = await axios.post('https://accounts.spotify.com/api/token', params, {
+      headers: {
+        'Content-Type': 'application/x-www-form-urlencoded',
+        Authorization: `Basic ${btoa(`${CLIENT_ID}:${CLIENT_SECRET}`)}`,
+      },
+    });
+    return response.data.access_token;
+  };
 
+  const fetchPlaylistTracks = async () => {
+    try {
+      const accessToken = await fetchAccessToken();
+      const response = await axios.get(`https://api.spotify.com/v1/playlists/${PLAYLIST_ID}/tracks`, {
+        headers: {
+          Authorization: `Bearer ${accessToken}`,
+        },
+      });
+      let fetchedTracks = response.data.items.map(item => ({
+        name: item.track.name,
+        artists: item.track.artists.map(artist => artist.name).join(', '),
+        popularity: item.track.popularity,
+        cover: item.track.album.images[0].url // Assuming the first image is the cover
+      }));
+      setTracks(shuffleArray(fetchedTracks));
+      setLoading(false);
+    } catch (error) {
+      console.error('Error fetching playlist tracks:', error);
+    }
+  };
 
-  // Function to fetch access token from Spotify using Client Credentials Flow
-  const fetchAccessToken = async () => {
-    try {
-      const response = await axios.post('https://accounts.spotify.com/api/token', 
-        'grant_type=client_credentials', {
-        headers: {
-          'Content-Type': 'application/x-www-form-urlencoded',
-          Authorization: `Basic ${btoa(`${CLIENT_ID}:${CLIENT_SECRET}`)}`, // Encode client ID and secret
-        },
-      });
+  function shuffleArray(array) {
+    for (let i = array.length - 1; i > 0; i--) {
+      const j = Math.floor(Math.random() * (i + 1));
+      [array[i], array[j]] = [array[j], array[i]];
+    }
+    return array;
+  }
 
-      return response.data.access_token; // Return access token from response
-    } catch (error) {
-      console.error('Error fetching access token:', error);
-      return null;
-    }
-  };
+  const handleGuess = (guessHigher) => {
+    if (!tracks.length || currentIndex >= tracks.length - 1) {
+      setGameOver(true);
+      return;
+    }
 
-  // Function to fetch track data from Spotify API
-  const fetchTrackData = async (trackId) => {
-    try {
-      const accessToken = await fetchAccessToken();
-      if (!accessToken) {
-        throw new Error('Failed to obtain access token');
-      }
+    const currentTrack = tracks[currentIndex];
+    const nextTrack = tracks[currentIndex + 1];
 
-      const response = await axios.get(`https://api.spotify.com/v1/tracks/${trackId}`, {
-        headers: {
-          Authorization: `Bearer ${accessToken}`,
-        },
-      });
+    const isCorrect = (guessHigher && nextTrack.popularity > currentTrack.popularity) ||
+      (!guessHigher && nextTrack.popularity < currentTrack.popularity);
 
-      console.log(response.data); // Log the full response for inspection
-      setPopularity(response.data.popularity); // Set the popularity state
-      setError('');
-    } catch (error) {
-      console.error('Error fetching track data:', error);
-      setPopularity(null); // Reset popularity if there's an error
-      setError('Error fetching track data.');
-    }
-  };
+    if (isCorrect) {
+      setScore(score + 1);
+      setCurrentIndex(currentIndex + 1);
+    } else {
+      setGameOver(true);
+    }
+  };
 
-  
-  
-  // This function makes a request to Spotify’s API to fetch the tracks from the USA Top 50 playlist.
-  const fetchPlaylistTracks = async (accessToken) => {
-    setLoading(true);
-    try {
-      const response = await axios.get(`https://api.spotify.com/v1/playlists/${PLAYLIST_ID}/tracks`, {
-        headers: {
-          Authorization: `Bearer ${accessToken}`,
-        },
-      });
-      const fetchedTracks = response.data.items.map(item => item.track);
-      setTracks(fetchedTracks);
-      
-      if (fetchedTracks.length > 1) {
-        selectRandomTracks(fetchedTracks);
-      } else {
-        console.error('Not enough tracks to play the game.');
-        setCurrentTrack(null);
-        setNextTrack(null);
-      }
+  if (loading) return <Box textAlign="center" m="20">Loading...</Box>;
 
-      setScore(0);
-      setGameOver(false);
-      setError('');
-    } catch (error) {
-      console.error('Error fetching playlist tracks:', error);
-      setError('Error fetching playlist tracks.');
-    } finally {
-      setLoading(false);
-    }
-  };
-  
-//function to fetch tracks from Top 50 USA playlist everyday
-const fetchTracksEveryDay = async () => {
-  try {
-    const accessToken = await fetchAccessToken();
-    if (accessToken) {
-      await fetchPlaylistTracks(accessToken);
-    }
-    
-    setInterval(async () => {
-      const newAccessToken = await fetchAccessToken();
-      if (newAccessToken) {
-        await fetchPlaylistTracks(newAccessToken);
-      }
-    }, 24 * 60 * 60 * 1000); // Fetch every 24 hours
-  } catch (error) {
-    console.error('Error fetching tracks every day:', error);
-  }
-};
+  const currentTrack = tracks[currentIndex];
+  const nextTrack = tracks[currentIndex + 1] || {}; // Fallback for when reaching the end of the array
 
-  useEffect(() => {
-    fetchTracksEveryDay();
-  }, []);
-
-// Function to select two different random tracks from the playlist
-const selectRandomTracks = (fetchedTracks) => {
-  const randomIndex1 = Math.floor(Math.random() * fetchedTracks.length);
-  let randomIndex2 = Math.floor(Math.random() * fetchedTracks.length);
-  while (randomIndex2 === randomIndex1) {
-    randomIndex2 = Math.floor(Math.random() * fetchedTracks.length);
-  }
-
-  setCurrentTrack(fetchedTracks[randomIndex1]);
-  setNextTrack(fetchedTracks[randomIndex2]);
-};
-
-// Function to select a new random track for nextTrack
-const selectNewNextTrack = () => {
-  if (tracks.length < 2) {
-    console.error('Not enough tracks to play the game.');
-    return;
-  }
-    let randomIndex = Math.floor(Math.random() * tracks.length);
-    while (tracks[randomIndex].id === currentTrack.id) {
-      randomIndex = Math.floor(Math.random() * tracks.length);
-    }
-    
-    setNextTrack(tracks[randomIndex]);
-  };
-
- 
-
-  // Function to handle user guess (higher or lower)
-  const handleGuess = (guessedHigher) => {
-    if (!currentTrack || !nextTrack) return;
-
-    const isCorrect = (guessedHigher && nextTrack.popularity > currentTrack.popularity) ||
-                      (!guessedHigher && nextTrack.popularity < currentTrack.popularity);
-    if (isCorrect) {
-    setScore(score + 1);
-    setCurrentTrack(nextTrack); // Move nextTrack to currentTrack
-    selectNewNextTrack(); // Select new random track for nextTrack
-  } else {
-    if (nextTrack.popularity === currentTrack.popularity) {
-      // Handle tie scenario
-      console.log('Popularity is Tied!');
-      setCurrentTrack(nextTrack);
-      selectNewNextTrack(); // Select new random track for nextTrack
-    } else {
-      // Game over scenario
-      console.log('Game over: Incorrect guess');
-      setGameOver(true);
-    }
-  };
-
-
-  useEffect(() => {
-    if (tracks.length > 1) {
-      selectRandomTracks(tracks);
-    }
-  }, [tracks]);
-
-   // Function to start the game
-   const startGame = async () => {
-    try {
-      const accessToken = await fetchAccessToken();
-      if (accessToken) {
-        await fetchPlaylistTracks(accessToken);
-      }
-    } catch (error) {
-      console.error('Error starting game:', error);
-      setCurrentTrack(null);
-      setNextTrack(null);
-    }
-  };
-
-  useEffect(() => {
-    startGame();
-  }, []);
-}
-  return (
-    <div className="App">
-      <h1>Spotify Track Popularity Higher or Lower Game</h1>
-      <div>
-        <label>Enter Spotify Track ID:</label>
-        <input type="text" value={trackId} onChange={handleInputChange} />
-        <button onClick={fetchTrackData}>Get Popularity</button>
-      </div>
-      {popularity !== null && (
-        <div>
-          <h2>Popularity: {popularity}</h2>
-        </div>
-      )}
-      <div>
-        <h2>Current Track:</h2>
-        {currentTrack ? (
-          <div>
-            <p>{currentTrack.name} - {currentTrack.artists.map(artist => artist.name).join(', ')}</p>
-            <p>Popularity: {currentTrack.popularity}</p>
-          </div>
-        ) : loading ? (
-          <p>Loading...</p>
-        ) : (
-          <p>No track selected</p>
-        )}
-      </div>
-      <div>
-        <h2>Next Track:</h2>
-        {nextTrack ? (
-          <div>
-            <p>{nextTrack.name} - {nextTrack.artists.map(artist => artist.name).join(', ')}</p>
-            <p>Popularity: {nextTrack.popularity}</p>
-          </div>
-        ) : loading ? (
-          <p>Loading...</p>
-        ) : (
-          <p>No track selected</p>
-        )}
-      </div>
-      <div>
-        <h2>Score: {score}</h2>
-        {gameOver && <p>Game Over!</p>}
-        {!gameOver && (
-          <div>
-            <button onClick={() => handleGuess(true)}>Higher</button>
-            <button onClick={() => handleGuess(false)}>Lower</button>
-          </div>
-        )}
-      </div>
-    </div>
-  );
+  return (
+    <ChakraProvider>
+      <Flex justify="space-between" align="center" h="100vh" className="App" p={5}>
+        <Box h="100%" w="50%" textAlign="center" p={5} style={{ backgroundImage: `url(${currentTrack.cover})`, backgroundSize: '100% 100%', filter: 'blur(3px)', backdropFilter: 'blur(10px)' }}>
+          <Heading as="h1">Spotify Popularity Game</Heading>
+          <Text fontSize="xl">{currentTrack.name} - {currentTrack.artists}</Text>
+          <Text fontSize="lg">Popularity: {currentTrack.popularity}</Text>
+        </Box>
+        {!gameOver && (
+          <Box h="100%" w="50%" textAlign="center" p={5} style={{ backgroundImage: `url(${nextTrack.cover})`, backgroundSize: '100% 100%', filter: 'blur(3px)', backdropFilter: 'blur(10px)' }}>
+            <Text fontSize="xl">{nextTrack.name} - {nextTrack.artists}</Text>
+          </Box>
+        )}
+      </Flex>
+      <Flex justify="center" position="absolute" left="0" right="0" bottom="20px">
+        {gameOver ? (
+          <>
+            <Heading as="h2">Game Over! Your score: {score}</Heading>
+            <Button colorScheme="blue" onClick={() => window.location.reload()}>Play Again</Button>
+          </>
+        ) : (
+          <>
+            <Button colorScheme="blue" mr={4} onClick={() => handleGuess(true)}>Higher</Button>
+            <Button colorScheme="blue" onClick={() => handleGuess(false)}>Lower</Button>
+          </>
+        )}
+      </Flex>
+    </ChakraProvider>
+  );
 }
 
 export default App;
