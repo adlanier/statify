@@ -1,13 +1,7 @@
-import { extendTheme, Box, Button, ChakraProvider, Flex, Heading, Text, Stack } from '@chakra-ui/react';
+import { Box, Button, ChakraProvider, Flex, Heading, Text, Stack } from '@chakra-ui/react';
 import axios from 'axios';
 import { useEffect, useState, useRef } from 'react';
 
-const theme = extendTheme({
-  fonts: {
-    heading: "Nunito, sans-serif",
-    body: "Nunito, sans-serif",
-  },
-});
 
 const CLIENT_ID = import.meta.env.VITE_CLIENT_ID;
 const CLIENT_SECRET = import.meta.env.VITE_CLIENT_SECRET;
@@ -94,6 +88,13 @@ function App() {
 
   const currentTrack = tracks[currentIndex];
   const nextTrack = tracks[currentIndex + 1] || {}; // Fallback for when reaching the end of the array
+
+const resetGame = () => {
+  setTracks(shuffleArray([...tracks])); // Shuffle tracks again
+  setScore(0);
+  setCurrentIndex(0);
+  setGameOver(false);
+};
 
 
 return (
@@ -287,8 +288,8 @@ fontFamily: 'Proxima Nova'
         >
           <Text fontSize="4xl" mb={4}>Game Over!</Text>
           <Text fontSize="2xl" mb={8}>Your Score: {score}</Text>
-          <Button size="lg" colorScheme="whiteAlpha" onClick={() => window.location.reload()}>Play Again</Button>
-        </Box>
+          <Button size="lg" colorScheme="whiteAlpha" onClick={resetGame}>Play Again</Button>
+          </Box>
       )}
     </Flex>
   </ChakraProvider>
@@ -297,3 +298,5 @@ fontFamily: 'Proxima Nova'
 
 
 export default App;
+
+
