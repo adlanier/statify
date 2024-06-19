@@ -1,6 +1,13 @@
-import { Box, Button, ChakraProvider, Flex, Heading, Text } from '@chakra-ui/react';
+import { extendTheme, Box, Button, ChakraProvider, Flex, Heading, Text, Stack } from '@chakra-ui/react';
 import axios from 'axios';
 import { useEffect, useState, useRef } from 'react';
+
+const theme = extendTheme({
+  fonts: {
+    heading: "Nunito, sans-serif",
+    body: "Nunito, sans-serif",
+  },
+});
 
 const CLIENT_ID = import.meta.env.VITE_CLIENT_ID;
 const CLIENT_SECRET = import.meta.env.VITE_CLIENT_SECRET;
@@ -90,49 +97,52 @@ function App() {
 
 
 return (
-    <ChakraProvider>
-      <Heading as="h1" textAlign="center">Statify</Heading>
+  <ChakraProvider>
+    <Flex direction="column" align="center" h="100vh" bg="black">
+      <Heading as="h1" color="green" textAlign="center" fontFamily="Proxima Nova">Statify</Heading>
 
-      <Flex justify="space-between" align="center" h="100vh" className="App" p={5} position="relative">
+      <Flex justify="center" align="center" h="100vh" w="100%" className="App" p={5}>
         {/* Box for current track */}
-        <Box 
+        <Box
           h="100%" 
-          w="50%" 
+          w="100%" 
           textAlign="center" 
-          p={5} 
-          style={{ 
-            position: 'relative', // Ensure relative positioning for nested elements
-            overflow: 'hidden', // Optional: Ensure no overflow of content
-            borderRadius: '10px' // Optional: Rounded corners
+          p={5}
+          style={{
+            position: 'relative',
+            overflow: 'hidden',
+            borderRadius: '10px',
+            margin: '10px'
           }}
         >
           {/* Background image with filter */}
-          <div 
-            style={{ 
-              backgroundImage: `url(${currentTrack.cover})`, 
-              backgroundSize: 'cover', 
+          <div
+            style={{
+              backgroundImage: `url(${currentTrack.cover})`,
+              backgroundSize: 'cover',
               backgroundPosition: 'center',
-              filter: 'brightness(0.55)', // Adjust brightness as needed
-              width: '100%', 
+              filter: 'brightness(0.4)',
+              width: '100%',
               height: '100%',
-              position: 'absolute', 
-              top: 0, 
+              position: 'absolute',
+              top: 0,
               left: 0,
-              zIndex: 1, // Ensure background is behind text
-              borderRadius: '10px' // Optional: Rounded corners
+              zIndex: 1,
+              borderRadius: '10px'
             }}
           />
-          
           {/* Text content */}
-          <div 
-            style={{ 
-              position: 'relative', // Ensure relative positioning for nested elements
-              zIndex: 2, // Ensure text is above background
-              color: 'white', // Text color
-              textAlign: 'center', // Center text
-              padding: '20px', // Padding around text
-              fontSize: '2.2rem', // Adjust font size as needed
+          <div
+            style={{
+              position: 'relative',
+              top: 100,
+              zIndex: 2,
+              color: 'white',
+              textAlign: 'center',
+              padding: '20px',
+              fontSize: '2.2rem',
             }}
+            fontFamily="Proxima Nova"
           >
             <b>{currentTrack.name}</b> by <b>{currentTrack.artists}</b>
             <br />
@@ -140,65 +150,150 @@ return (
           </div>
         </Box>
 
+        {/* VS circle */}
+        {!gameOver && (
+            <div
+              style={{
+                position: 'absolute',
+                background: 'green',
+                top: '50%',
+                left: '50%',
+                transform: 'translate(-50%, -50%)',
+                color: 'black',
+                borderRadius: '50%',
+                width: '80px',
+                height: '80px',
+                display: 'flex',
+                justifyContent: 'center',
+                alignItems: 'center',
+                fontSize: '1.5rem',
+                fontWeight: 'bold',
+                zIndex: 20,
+fontFamily: 'Proxima Nova'
+              }}
+              fontFamily="Proxima Nova"
+            >
+              VS
+            </div>
+          )}
+
         {/* Box for next track */}
-        <Box 
+        <Box
           h="100%" 
-          w="50%" 
-          textAlign="center" 
-          p={5} 
-          style={{ 
-            position: 'relative', // Ensure relative positioning for nested elements
-            overflow: 'hidden', // Optional: Ensure no overflow of content
-            borderRadius: '10px' // Optional: Rounded corners
+          w="100%" 
+          textAlign="center"
+          p={5}
+          style={{
+            position: 'relative',
+            overflow: 'hidden',
+            borderRadius: '10px',
+            margin: '10px'
           }}
         >
           {/* Background image with filter */}
-          <div 
-            style={{ 
-              backgroundImage: `url(${nextTrack.cover})`, 
-              backgroundSize: 'cover', 
+          <div
+            style={{
+              backgroundImage: `url(${nextTrack.cover})`,
+              backgroundSize: 'cover',
               backgroundPosition: 'center',
-              filter: 'brightness(0.55)', // Adjust brightness as needed
-              width: '100%', 
+              filter: 'brightness(0.4)',
+              width: '100%',
               height: '100%',
-              position: 'absolute', 
-              top: 0, 
+              position: 'absolute',
+              top: 0,
               left: 0,
-              zIndex: 1, // Ensure background is behind text
-              borderRadius: '10px' // Optional: Rounded corners
+              zIndex: 1,
+              borderRadius: '10px'
             }}
           />
-          
           {/* Text content */}
-          <div 
-            style={{ 
-              position: 'relative', // Ensure relative positioning for nested elements
-              zIndex: 2, // Ensure text is above background
-              color: 'white', // Text color
-              textAlign: 'center', // Center text
-              padding: '20px', // Padding around text
-              fontSize: '2.2rem', // Adjust font size as needed
+          <div
+            style={{
+              position: 'relative',
+              top: 100,
+              zIndex: 2,
+              color: 'white',
+              textAlign: 'center',
+              padding: '20px',
+              fontSize: '2.2rem',
+              fontFamily: 'Proxima Nova'
             }}
           >
-            {gameOver ? (
+            {gameOver ? null : (
               <div>
-                Game Over! Your score: {score}
-                <Button size="lg" colorScheme="white" ml={4} onClick={() => window.location.reload()}>Play Again</Button>
-              </div>
-            ) : (
-              <div>
-                Does "<b>{nextTrack.name}</b> by <b>{nextTrack.artists}</b>" have a higher or lower popularity score?
+                <div style={{ textAlign: 'center' }}><b>Does "{nextTrack.name}"</b> by <b>{nextTrack.artists}</b></div>
+                <div style={{ textAlign: 'center' }}>have a higher or lower popularity score?</div>
                 <div style={{ marginTop: '20px' }}>
-                  <Button size="xlg" colorScheme="white" onClick={() => handleGuess(true)}>Higher &#128200;</Button>
-                  <Button size="xlg" colorScheme="white" ml={24} onClick={() => handleGuess(false)}>Lower &#128201;</Button>
+                <Stack spacing={4} direction="row" justify="center" mt={4}>
+                    <Button
+                      size="lg"
+                      colorScheme="whiteAlpha"
+                      onClick={() => handleGuess(true)}
+                      _hover={{ bg: "green.400", color: "white" }}
+                    >
+                      Higher &#128200;
+                    </Button>
+                    <Button
+                      size="lg"
+                      colorScheme="whiteAlpha"
+                      onClick={() => handleGuess(false)}
+                      _hover={{ bg: "green.400", color: "white" }}
+                    >
+                      Lower &#128201;
+                    </Button>
+                  </Stack>
                 </div>
               </div>
             )}
           </div>
         </Box>
       </Flex>
-    </ChakraProvider>
-  );
-};
+
+     {/* Score Display */}
+      <div
+        style={{
+          position: 'fixed',
+          bottom: '20px',
+          right: '20px',
+          backgroundColor: 'green',
+          color: 'black',
+          borderRadius: '8px',
+          padding: '12px 24px',  // Increased padding for larger size
+          fontSize: '1.5rem',    // Increased font size for larger size
+          zIndex: 10,
+          fontFamily: 'Proxima Nova'
+        }}
+      >
+        Score: {score}
+      </div>
+
+      
+
+      {gameOver && (
+        <Box
+          position="fixed"
+          top="0"
+          left="0"
+          width="100vw"
+          height="100vh"
+          backgroundColor="rgba(0, 0, 0, 0.8)"
+          display="flex"
+          flexDirection="column"
+          justifyContent="center"
+          alignItems="center"
+          color="white"
+          zIndex="10"
+          fontFamily="Proxima Nova"
+        >
+          <Text fontSize="4xl" mb={4}>Game Over!</Text>
+          <Text fontSize="2xl" mb={8}>Your Score: {score}</Text>
+          <Button size="lg" colorScheme="whiteAlpha" onClick={() => window.location.reload()}>Play Again</Button>
+        </Box>
+      )}
+    </Flex>
+  </ChakraProvider>
+);
+}
+
 
 export default App;

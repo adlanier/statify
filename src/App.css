@@ -16,4 +16,10 @@
     transform: translateX(-50%);
     text-align: center;
   }
+
+
+/* Optional: Font family for Nunito */
+body {
+  font-family: 'Nunito', sans-serif;
+}
   
