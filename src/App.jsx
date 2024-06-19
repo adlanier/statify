@@ -89,18 +89,18 @@ function App() {
   const currentTrack = tracks[currentIndex];
   const nextTrack = tracks[currentIndex + 1] || {}; // Fallback for when reaching the end of the array
 
-const resetGame = () => {
-  setTracks(shuffleArray([...tracks])); // Shuffle tracks again
-  setScore(0);
-  setCurrentIndex(0);
-  setGameOver(false);
-};
+  const resetGame = () => {
+    setTracks(shuffleArray([...tracks])); // Shuffle tracks again
+    setScore(0);
+    setCurrentIndex(0);
+    setGameOver(false);
+  };
 
 
 return (
   <ChakraProvider>
     <Flex direction="column" align="center" h="100vh" bg="black">
-      <Heading as="h1" color="green" textAlign="center" fontFamily="Proxima Nova">Statify</Heading>
+      <Heading as="h1" color="green" textAlign="center" fontFamily="Proxima Nova" mt={30}>Statify</Heading>
 
       <Flex justify="center" align="center" h="100vh" w="100%" className="App" p={5}>
         {/* Box for current track */}
