@@ -1,4 +1,4 @@
-import { Box, Button, ChakraProvider, Flex, Heading, Text, Stack } from '@chakra-ui/react';
+import { Box, Button, ChakraProvider, Flex, Heading, Text, Stack, Progress } from '@chakra-ui/react';
 import axios from 'axios';
 import { useEffect, useState, useRef } from 'react';
 
@@ -13,6 +13,7 @@ function App() {
   const [gameOver, setGameOver] = useState(false);
   const [loading, setLoading] = useState(true);
   const [currentPage, setCurrentPage] = useState('home'); // Add this state variable
+  const [loadingProgress, setLoadingProgress] = useState(0); // State for loading progress
   const isInitialMount = useRef(true);
 
   useEffect(() => {
@@ -22,6 +23,8 @@ function App() {
       isInitialMount.current = false;
     }
   }, []);
+
+  const delay = ms => new Promise(res => setTimeout(res, ms)); // Delay function
 
   const fetchAccessToken = async () => {
     const params = new URLSearchParams();
@@ -38,13 +41,15 @@ function App() {
 
   const fetchArtistDetails = async (artistIds, accessToken) => {
     const artistDetails = [];
-    for (const artistId of artistIds) {
+    for (const [index, artistId] of artistIds.entries()) {
       const response = await axios.get(`https://api.spotify.com/v1/artists/${artistId}`, {
         headers: {
           Authorization: `Bearer ${accessToken}`,
         },
       });
       artistDetails.push(response.data);
+      setLoadingProgress(Math.round(((index + 1) / artistIds.length) * 95)); // Update progress, max 95%
+      await delay(300); // Add delay for visual effect
     }
     return artistDetails;
   };
@@ -93,6 +98,8 @@ function App() {
       console.log('Artists with monthly listeners:', fetchedArtists);
 
       setArtists(shuffleArray(fetchedArtists));
+      setLoadingProgress(100); // Set progress to 100% before loading completes
+      await delay(500); // Short delay before hiding loading screen
       setLoading(false);
       setCurrentIndex(0);
     } catch (error) {
@@ -148,7 +155,7 @@ function App() {
     setGameOver(false);
   };
 
-  if (loading) return <Box textAlign="center" m="20">Loading...</Box>;
+  if (loading) return <LoadingScreen progress={loadingProgress} />;
 
   const currentArtist = artists[currentIndex];
   const nextArtist = artists[currentIndex + 1] || {};
@@ -171,6 +178,13 @@ function App() {
     </ChakraProvider>
   );
 }
+
+const LoadingScreen = ({ progress }) => (
+  <Flex direction="column" align="center" justify="center" h="100vh" bg="black" color="white">
+    <Heading as="h1" color="green">Statify</Heading>
+    <Progress colorScheme="green" size="lg" width="80%" value={progress} mt={8} />
+  </Flex>
+);
 
 const HomePage = ({ setCurrentPage }) => (
   <Flex direction="column" align="center" h="100vh" bg="black" color="white">
