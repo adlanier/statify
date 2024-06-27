@@ -4,7 +4,7 @@ import { useEffect, useState, useRef } from 'react';
 
 const CLIENT_ID = import.meta.env.VITE_CLIENT_ID;
 const CLIENT_SECRET = import.meta.env.VITE_CLIENT_SECRET;
-const PLAYLIST_ID = '37i9dQZEVXbLRQDuF5jeBp';
+const PLAYLIST_ID = '1B01wTbtbkpFF4mFbwqEmK';
 
 function App() {
   const [artists, setArtists] = useState([]);
@@ -12,8 +12,8 @@ function App() {
   const [score, setScore] = useState(0);
   const [gameOver, setGameOver] = useState(false);
   const [loading, setLoading] = useState(true);
-  const [currentPage, setCurrentPage] = useState('home'); // Add this state variable
-  const [loadingProgress, setLoadingProgress] = useState(0); // State for loading progress
+  const [currentPage, setCurrentPage] = useState('home');
+  const [loadingProgress, setLoadingProgress] = useState(0);
   const isInitialMount = useRef(true);
 
   useEffect(() => {
@@ -24,7 +24,7 @@ function App() {
     }
   }, []);
 
-  const delay = ms => new Promise(res => setTimeout(res, ms)); // Delay function
+  const delay = ms => new Promise(res => setTimeout(res, ms)); 
 
   const fetchAccessToken = async () => {
     const params = new URLSearchParams();
@@ -48,8 +48,8 @@ function App() {
         },
       });
       artistDetails.push(response.data);
-      setLoadingProgress(Math.round(((index + 1) / artistIds.length) * 95)); // Update progress, max 95%
-      await delay(300); // Add delay for visual effect
+      setLoadingProgress(Math.round(((index + 1) / artistIds.length) * 95)); 
+      await delay(300); 
     }
     return artistDetails;
   };
@@ -70,36 +70,32 @@ function App() {
 
       console.log('Artists fetched from Spotify:', fetchedArtists);
 
-      // Remove duplicate artists
       fetchedArtists = fetchedArtists.filter((artist, index, self) =>
         index === self.findIndex((a) => a.artistId === artist.artistId)
       );
 
-      // Fetch additional details (including images) for each artist
       const artistIds = fetchedArtists.map(artist => artist.artistId);
       const artistDetails = await fetchArtistDetails(artistIds, accessToken);
 
-      // Fetch monthly listeners for each artist
       const artistListenersData = await fetchMonthlyListeners(artistIds);
 
       console.log('Monthly listeners data:', artistListenersData);
 
-      // Add monthly listeners and image URL to fetched artists
       fetchedArtists = fetchedArtists.map(artist => {
         const artistDetail = artistDetails.find(detail => detail.id === artist.artistId);
         const artistData = artistListenersData.find(data => data.url.includes(artist.artistId));
         return {
           ...artist,
           artistImage: artistDetail.images[0] ? artistDetail.images[0].url : 'https://via.placeholder.com/300',
-          monthlyListeners: artistData ? artistData.monthly_listeners.replace(' .', '') : 'N/A' // This line removes the trailing dots
+          monthlyListeners: artistData ? artistData.monthly_listeners.replace(' .', '') : 'N/A'
         };
       });
 
       console.log('Artists with monthly listeners:', fetchedArtists);
 
       setArtists(shuffleArray(fetchedArtists));
-      setLoadingProgress(100); // Set progress to 100% before loading completes
-      await delay(500); // Short delay before hiding loading screen
+      setLoadingProgress(100); 
+      await delay(500); 
       setLoading(false);
       setCurrentIndex(0);
     } catch (error) {
@@ -128,18 +124,31 @@ function App() {
     return array;
   };
 
+  const parseMonthlyListeners = (value) => {
+    if (value.endsWith('M')) {
+      return parseFloat(value.slice(0, -1)) * 1e6;
+    }
+    if (value.endsWith('K')) {
+      return parseFloat(value.slice(0, -1)) * 1e3;
+    }
+    return parseFloat(value);
+  };
+  
   const handleGuess = (guessHigher) => {
     if (!artists.length || currentIndex >= artists.length - 1) {
       setGameOver(true);
       return;
     }
-
+  
     const currentArtist = artists[currentIndex];
     const nextArtist = artists[currentIndex + 1];
-
-    const isCorrect = (guessHigher && nextArtist.monthlyListeners > currentArtist.monthlyListeners) ||
-      (!guessHigher && nextArtist.monthlyListeners < currentArtist.monthlyListeners);
-
+  
+    const currentArtistListeners = parseMonthlyListeners(currentArtist.monthlyListeners);
+    const nextArtistListeners = parseMonthlyListeners(nextArtist.monthlyListeners);
+  
+    const isCorrect = (guessHigher && nextArtistListeners > currentArtistListeners) ||
+      (!guessHigher && nextArtistListeners < currentArtistListeners);
+  
     if (isCorrect) {
       setScore(score + 1);
       setCurrentIndex(currentIndex + 1);
@@ -148,11 +157,20 @@ function App() {
     }
   };
 
-  const resetGame = () => {
+  const resetGameState = () => {
     setArtists(shuffleArray([...artists]));
     setScore(0);
     setCurrentIndex(0);
     setGameOver(false);
+  };
+
+  const resetGame = () => {
+    resetGameState();
+  };
+
+  const handleBackToHome = () => {
+    resetGameState();
+    setCurrentPage('home');
   };
 
   if (loading) return <LoadingScreen progress={loadingProgress} />;
@@ -172,6 +190,7 @@ function App() {
           gameOver={gameOver}
           handleGuess={handleGuess}
           resetGame={resetGame}
+          handleBackToHome={handleBackToHome}
           setCurrentPage={setCurrentPage}
         />
       )}
@@ -183,24 +202,31 @@ const LoadingScreen = ({ progress }) => (
   <Flex direction="column" align="center" justify="center" h="100vh" bg="black" color="white">
     <Heading as="h1" color="green">Statify</Heading>
     <Progress colorScheme="green" size="lg" width="80%" value={progress} mt={8} />
+    <Text color="green">Grabbing a lot of artists...</Text>
   </Flex>
 );
 
 const HomePage = ({ setCurrentPage }) => (
-  <Flex direction="column" align="center" h="100vh" bg="black" color="white">
-    <Heading as="h1" mt={6} color="green" textAlign="center">Statify</Heading>
-    <Text mt={4} fontSize="xl" textAlign="center" p={5}>
-      Welcome to Statify! In this game, you will guess whether the next artist has more or fewer monthly listeners than the current artist. Try to get the highest score possible!
+  <Flex direction="column" align="center" h="100vh" bg="black" color="white" overflowY="auto" p={[4, 6, 8]}>
+    <Heading as="h1" mt={[4, 6, 8]} color="green" textAlign="center">Statify</Heading>
+    <Text mt={[4, 6, 8]} fontSize={["md", "lg", "xl"]} textAlign="center" p={[4, 6, 8]}>
+      Welcome to Statify! Statify is a higher or lower guessing game where you guess if a random Spotify artist has a higher or lower amount of monthly listeners than the current Spotify artist. 
     </Text>
-    <Button mt={8} size="lg" colorScheme="green" onClick={() => setCurrentPage('game')}>Start Game</Button>
+    <Text mt={[4, 6, 8]} fontSize={["md", "lg", "xl"]} textAlign="center" p={[4, 6, 8]}>
+      How high of a streak can you get?
+    </Text>
+    <Button mt={[4, 6, 8]} size="lg" colorScheme="green" onClick={() => setCurrentPage('game')}>Start Game</Button>
+    <Text  mt={[4, 6, 8]}>
+      Please report any bugs or concerns to adrianlanier33@gmail.com
+    </Text>
   </Flex>
 );
 
-const GamePage = ({ currentArtist, nextArtist, score, gameOver, handleGuess, resetGame, setCurrentPage }) => (
-  <Flex direction="column" align="center" h="100vh" bg="black">
-    <Heading as="h1" color="green" textAlign="center" fontFamily="Proxima Nova" mt={6}>Statify</Heading>
+const GamePage = ({ currentArtist, nextArtist, score, gameOver, handleGuess, resetGame, handleBackToHome }) => (
+  <Flex direction="column" align="center" h="100vh" bg="black" overflowY="auto" p={[4, 6, 8]}>
+    <Heading as="h1" color="green" textAlign="center" fontFamily="Proxima Nova" mt={[4, 6, 8]}>Statify</Heading>
 
-    <Flex justify="center" align="center" h="100vh" w="100%" className="App" p={5}>
+    <Flex direction={["column", "row"]} justify="center" align="center" flex="1" w="100%" className="App" p={[4, 6, 8]}>
       {/* Box for current artist */}
       <ArtistBox artist={currentArtist} />
 
@@ -215,17 +241,17 @@ const GamePage = ({ currentArtist, nextArtist, score, gameOver, handleGuess, res
     <ScoreDisplay score={score} />
 
     {gameOver && (
-      <GameOverOverlay score={score} resetGame={resetGame} setCurrentPage={setCurrentPage} />
+      <GameOverOverlay score={score} resetGame={resetGame} handleBackToHome={handleBackToHome} />
     )}
   </Flex>
 );
 
 const ArtistBox = ({ artist }) => (
   <Box
-    h="100%"
-    w="100%"
+    h={["auto", "100%"]}
+    w={["100%", "50%"]}
     textAlign="center"
-    p={5}
+    p={[4, 6, 8]}
     style={{
       position: 'relative',
       overflow: 'hidden',
@@ -269,10 +295,10 @@ const ArtistBox = ({ artist }) => (
 
 const NextArtistBox = ({ artist, gameOver, handleGuess }) => (
   <Box
-    h="100%"
-    w="100%"
+    h={["auto", "100%"]}
+    w={["100%", "50%"]}
     textAlign="center"
-    p={5}
+    p={[4, 6, 8]}
     style={{
       position: 'relative',
       overflow: 'hidden',
@@ -380,7 +406,7 @@ const ScoreDisplay = ({ score }) => (
   </div>
 );
 
-const GameOverOverlay = ({ score, resetGame, setCurrentPage }) => (
+const GameOverOverlay = ({ score, resetGame, handleBackToHome }) => (
   <Box
     position="fixed"
     top="0"
@@ -395,11 +421,12 @@ const GameOverOverlay = ({ score, resetGame, setCurrentPage }) => (
     color="white"
     zIndex="10"
     fontFamily="Proxima Nova"
+    overflowY="auto"
   >
-    <Text fontSize="4xl" mb={4}>Game Over!</Text>
-    <Text fontSize="2xl" mb={8}>Your Score: {score}</Text>
+    <Text fontSize={["2xl", "4xl"]} mb={4}>Game Over!</Text>
+    <Text fontSize={["xl", "2xl"]} mb={8}>Your Score: {score}</Text>
     <Button size="lg" colorScheme="whiteAlpha" onClick={resetGame} mb={4}>Play Again</Button>
-    <Button size="lg" colorScheme="whiteAlpha" onClick={() => setCurrentPage('home')}>Back to Home</Button>
+    <Button size="lg" colorScheme="whiteAlpha" onClick={handleBackToHome}>Back to Home</Button>
   </Box>
 );
 
