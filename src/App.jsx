@@ -2,7 +2,6 @@ import { Box, Button, ChakraProvider, Flex, Heading, Text, Stack, Progress } fro
 import axios from 'axios';
 import { useEffect, useState, useRef } from 'react';
 import './App.css';
-import LazyLoad from 'react-lazyload';
 
 const BATCH_SIZE = 3; // Initial number of artists to load
 
@@ -322,7 +321,6 @@ const ArtistBox = ({ artist }) => {
         margin: '10px'
       }}
     >
-      <LazyLoad>
         <div
           style={{
             backgroundImage: `url(${artist.artistImage})`,
@@ -338,7 +336,6 @@ const ArtistBox = ({ artist }) => {
             borderRadius: '10px'
           }}
         />
-      </LazyLoad>
       <div
         style={{
           position: 'relative',
@@ -381,7 +378,6 @@ const NextArtistBox = ({ artist, gameOver, handleGuess }) => (
       margin: '10px'
     }}
   >
-    <LazyLoad>
       <div
         style={{
           backgroundImage: `url(${artist.artistImage})`,
@@ -397,7 +393,6 @@ const NextArtistBox = ({ artist, gameOver, handleGuess }) => (
           borderRadius: '10px'
         }}
       />
-    </LazyLoad>
     <div
       style={{
         position: 'relative',
