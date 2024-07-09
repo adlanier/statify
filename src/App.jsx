@@ -2,6 +2,10 @@ import { Box, Button, ChakraProvider, Flex, Heading, Text, Stack, Progress } fro
 import axios from 'axios';
 import { useEffect, useState, useRef } from 'react';
 import './App.css';
+import theme from './theme';
+
+
+
 
 const BATCH_SIZE = 3; // Initial number of artists to load
 
@@ -43,6 +47,8 @@ function App() {
   const [isLoading, setIsLoading] = useState(false);
   const isInitialMount = useRef(true);
   const [loadedIn, setLoadedIn] = useState(false);
+  const [preFetchedBatch, setPreFetchedBatch] = useState([]);
+
 
   useEffect(() => {
     if (isInitialMount.current) {
@@ -70,7 +76,7 @@ function App() {
     setCurrentIndex(0);
   };
   
-  const fetchRandomArtists = async (count) => {
+  const fetchRandomArtists = async (count,preFetch = false) => {
     try {
       const accessToken = await fetchAccessToken();
       let artistDetails = [];
@@ -117,19 +123,33 @@ function App() {
           monthlyListeners: artistData ? artistData.monthly_listeners.replace(' .', '') : 'N/A'
         };
       });
+
+      // Preload images
+      preloadImages(fetchedArtists.map(artist => artist.artistImage));
   
       setSeenArtists(newSeenArtists);
-      setArtists(prevArtists => {
-        const updatedArtists = [...prevArtists, ...shuffleArray(fetchedArtists)];
-        return updatedArtists;
-      });
+      
+      if (preFetch) {
+        setPreFetchedBatch(fetchedArtists);
+      } else {
+        setArtists(prevArtists => {
+          const updatedArtists = [...prevArtists, ...shuffleArray(fetchedArtists)];
+          return updatedArtists;
+        });
+      }
     } catch (error) {
       console.error('Error fetching artist details:', error.response?.data || error.message);
     }
   };
+
+  useEffect(() => {
+    if (loadedIn && artists.length > 0 && preFetchedBatch.length === 0) {
+      fetchRandomArtists(BATCH_SIZE, true);  // Pre-fetch the next batch
+    }
+  }, [artists, loadedIn]);
   
 const fetchMonthlyListeners = async (artistIds) => {
-  console.log(artistIds);
+  //console.log(artistIds);
   try {
       console.log('Fetching monthly listeners for artist IDs:', artistIds);
       const batchSize = 10;  
@@ -189,16 +209,26 @@ const shuffleArray = (array) => {
       (!guessHigher && nextArtistListeners < currentArtistListeners) ||
       (currentArtistListeners === nextArtistListeners); // Treat equality as correct guess
   
-    if (isCorrect) {
-      setScore(score + 1);
-      setCurrentIndex(currentIndex + 1);
-      if (artists.length - currentIndex <= 3) {
-        await fetchRandomArtists(4);  // Load four more random artists
+      if (isCorrect) {
+        setScore(score + 1);
+        setCurrentIndex(currentIndex + 1);
+        if (preFetchedBatch.length > 0) {
+          setArtists(prevArtists => [...prevArtists, ...preFetchedBatch]);
+          setPreFetchedBatch([]);  // Clear pre-fetched batch after use
+          fetchRandomArtists(BATCH_SIZE, true);  // Pre-fetch another batch
+        }
+      } else {
+        setGameOver(true);
       }
-    } else {
-      setGameOver(true);
-    }
-  };
+    };
+
+    const preloadImages = (urls) => {
+      urls.forEach(url => {
+        const img = new Image();
+        img.src = url;
+      });
+    };
+    
   
 
   const handleBackToHome = () => {
@@ -233,7 +263,7 @@ const shuffleArray = (array) => {
   const nextArtist = artists[currentIndex + 1] || {};
 
   return (
-    <ChakraProvider>
+    <ChakraProvider theme={theme}>
       {currentPage === 'home' ? (
         <HomePage setCurrentPage={setCurrentPage} />
       ) : (
@@ -271,24 +301,29 @@ const SmallLoadingScreen = () => (
 
 
 const HomePage = ({ setCurrentPage }) => (
-  <Flex direction="column" align="center" h="100vh" bg="black" color="white" overflowY="auto" p={[4, 6, 8]}>
+  <Flex direction="column" align="center" h="100vh" color="white" overflowY="auto" p={[4, 6, 8]} bg="black">
     <Heading as="h1" mt={[4, 6, 8]} color="#1DB954" textAlign="center">Statify</Heading>
     <Text mt={[4, 6, 8]} fontSize={["md", "lg", "xl"]} textAlign="center" p={[4, 6, 8]}>
-      Welcome to Statify! Statify is a higher or lower guessing game where you guess if a random Spotify artist has a higher or lower amount of monthly listeners than the current Spotify artist. 
+      Welcome to Statify! Statify is a higher or lower guessing game where you guess if a random Spotify artist has a higher or lower amount of monthly listeners than the current Spotify artist.
     </Text>
     <Text mt={[4, 6, 8]} fontSize={["md", "lg", "xl"]} textAlign="center" p={[4, 6, 8]}>
       How high of a streak can you get?
     </Text>
-    <Button mt={[4, 6, 8]} size="lg" colorScheme="green" onClick={() => setCurrentPage('game')}>Start Game</Button>
-    <Text mt={[4, 6, 8]} textAlign="center">
-      Please report any bugs or concerns to adrianlanier33@gmail.com
-    </Text>
+    <Button mt={[4, 6, 8]} size="lg" colorScheme="spotifyGreen" onClick={() => setCurrentPage('game')}>Start Game</Button>
+
+    <Box position="absolute" bottom="60" bg="gray" px="3" py="1" borderRadius="md" boxShadow="sm">
+      <Text textAlign="center" fontSize="sm">
+        Contact me: <a href="mailto:adrianlanier33@gmail.com">adrianlanier33@gmail.com</a>
+      </Text>
+    </Box>
   </Flex>
 );
 
 
+
+
 const GamePage = ({ currentArtist, nextArtist, score, gameOver, handleGuess, resetGame, handleBackToHome }) => (
-  <Flex direction="column" align="center" h="100vh" bg="black" overflowY="auto" p={[4, 6, 8]}>
+  <Flex direction="column" align="center" h="100vh" bg="black" overflowY="auto" p={[4, 6, 8]} >
     <Heading as="h1" color="#1DB954" textAlign="center" mt={[4, 6, 8]}>Statify</Heading>
 
     <Flex direction={["column", "row"]} justify="center" align="center" flex="1" w="100%" className="App" p={[4, 6, 8]}>
@@ -326,62 +361,6 @@ const ArtistBox = ({ artist }) => {
         margin: '10px'
       }}
     >
-        <div
-          style={{
-            backgroundImage: `url(${artist.artistImage})`,
-            backgroundSize: 'cover',
-            backgroundPosition: 'center',
-            filter: 'brightness(0.4)',
-            width: '100%',
-            height: '100%',
-            position: 'absolute',
-            top: 0,
-            left: 0,
-            zIndex: 1,
-            borderRadius: '10px'
-          }}
-        />
-      <div
-        style={{
-          position: 'relative',
-          top: '50%',
-          transform: 'translateY(-50%)',
-          zIndex: 2,
-          color: 'white',
-          textAlign: 'center',
-          padding: '20px',
-          fontSize: ['1rem', '1.5rem', '2.2rem'],
-        }}
-      >
-       <Box as="b" fontSize={["2rem", "2.5rem", "3rem"]}>{artist.artistName}</Box>
-        <br />
-        has 
-        <br />
-        <Box as="b" fontSize={["2rem", "2.5rem", "3rem"]}>{artist.monthlyListeners}</Box>
-        <br />
-         monthly listeners
-      </div>
-    </Box>
-  );
-};
-
-
-
-
-
-const NextArtistBox = ({ artist, gameOver, handleGuess }) => (
-  <Box
-    h={["auto", "100%"]}
-    w={["100%", "50%"]}
-    textAlign="center"
-    p={[4, 6, 8]}
-    style={{
-      position: 'relative',
-      overflow: 'hidden',
-      borderRadius: '10px',
-      margin: '10px'
-    }}
-  >
       <div
         style={{
           backgroundImage: `url(${artist.artistImage})`,
@@ -397,6 +376,58 @@ const NextArtistBox = ({ artist, gameOver, handleGuess }) => (
           borderRadius: '10px'
         }}
       />
+      <div
+        style={{
+          position: 'relative',
+          top: '50%',
+          transform: 'translateY(-50%)',
+          zIndex: 2,
+          color: 'white',
+          textAlign: 'center',
+          padding: '20px',
+          fontSize: ['1rem', '1.5rem', '2.2rem'],
+        }}
+      >
+        <Box as="b" fontSize={["2rem", "2.5rem", "3rem"]}>{artist.artistName}</Box>
+        <br />
+        has 
+        <br />
+        <Box as="b" fontSize={["2rem", "2.5rem", "3rem"]}>{artist.monthlyListeners}</Box>
+        <br />
+         monthly listeners
+      </div>
+    </Box>
+  );
+};
+
+const NextArtistBox = ({ artist, gameOver, handleGuess }) => (
+  <Box
+    h={["auto", "100%"]}
+    w={["100%", "50%"]}
+    textAlign="center"
+    p={[4, 6, 8]}
+    style={{
+      position: 'relative',
+      overflow: 'hidden',
+      borderRadius: '10px',
+      margin: '10px'
+    }}
+  >
+    <div
+      style={{
+        backgroundImage: `url(${artist.artistImage})`,
+        backgroundSize: 'cover',
+        backgroundPosition: 'center',
+        filter: 'brightness(0.4)',
+        width: '100%',
+        height: '100%',
+        position: 'absolute',
+        top: 0,
+        left: 0,
+        zIndex: 1,
+        borderRadius: '10px'
+      }}
+    />
     <div
       style={{
         position: 'relative',
