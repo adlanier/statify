@@ -351,7 +351,6 @@ const ArtistBox = ({ artist }) => {
           textAlign: 'center',
           padding: '20px',
           fontSize: ['1rem', '1.5rem', '2.2rem'],
-          fontFamily: 'Proxima Nova'
         }}
       >
        <Box as="b" fontSize={["2rem", "2.5rem", "3rem"]}>{artist.artistName}</Box>
@@ -408,7 +407,6 @@ const NextArtistBox = ({ artist, gameOver, handleGuess }) => (
         textAlign: 'center',
         padding: '20px',
         fontSize: ['1rem', '1.5rem', '2.2rem'],
-        fontFamily: 'Proxima Nova'
       }}
     >
       {gameOver ? null : (
@@ -440,32 +438,6 @@ const NextArtistBox = ({ artist, gameOver, handleGuess }) => (
   </Box>
 );
 
-
-
-
-// const VSBox = () => (
-//   <Box
-//     position="absolute"
-//     bg="#1DB954"
-//     top={["80%", "50%"]}
-//     left="50%"
-//     transform="translate(-50%, -50%)"
-//     color="black"
-//     borderRadius="50%"
-//     w={["60px", "80px"]}
-//     h={["60px", "80px"]}
-//     display="flex"
-//     justifyContent="center"
-//     alignItems="center"
-//     fontSize={["1rem", "1.5rem"]}
-//     fontWeight="bold"
-//     zIndex="20"
-//     fontFamily="Proxima Nova"
-//   >
-//     VS
-//   </Box>
-// );
-
 const VSBox = () => (
   <div className="vs-circle">
     VS
@@ -485,7 +457,6 @@ const ScoreDisplay = ({ score }) => (
     p="12px 24px"
     fontSize={["1rem", "1.5rem"]}
     zIndex="10"
-    fontFamily="Proxima Nova"
   >
     Score: {score}
   </Box>
@@ -507,7 +478,6 @@ const GameOverOverlay = ({ score, resetGame, handleBackToHome }) => (
     alignItems="center"
     color="white"
     zIndex="10"
-    fontFamily="Proxima Nova"
     overflowY="auto"
   >
     <Text fontSize={["2xl", "3xl", "4xl"]} mb={4}>Game Over!</Text>
