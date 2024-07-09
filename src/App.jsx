@@ -1,30 +1,48 @@
 import { Box, Button, ChakraProvider, Flex, Heading, Text, Stack, Progress } from '@chakra-ui/react';
 import axios from 'axios';
 import { useEffect, useState, useRef } from 'react';
+import './App.css';
+import LazyLoad from 'react-lazyload';
+
+
 
 const CLIENT_ID = import.meta.env.VITE_CLIENT_ID;
 const CLIENT_SECRET = import.meta.env.VITE_CLIENT_SECRET;
-const PLAYLIST_ID = '1B01wTbtbkpFF4mFbwqEmK';
+const ARTIST_IDS = [
+  '6eUKZXaKkcviH0Ku9w2n3V', '3TVXtAsR1Inumwj472S9r4', '246dkjvS1zLTtiykXe5h60', 
+  '2YZyLoL8N0Wb9xBt1NhZWg','06HL4z0CvFAxyc27GXpf02','6qqNVTkY8uBg9cP3Jd7DAH',
+  '66CXWjxzNUsdJxJ2JdwvnR', '06HL4z0CvFAxyc27GXpf02',
+  '1uNFoZAHBGtllmzznpCI3s', '6qqNVTkY8uBg9cP3Jd7DAH', '1Xyo4u8uXC1ZmMpatF05PJ',
+  '6M2wZ9GZgrQXHCFfjv46we', '4q3ewBCX7sLwd24euuV69X', '1vyhD5VmyZ7KMfW5gqLgo5', '7n2wHs1TKAczGzO7Dd2rGr',
+  '0du5cEVh5yTK9QJze8zA0C', '4kYSro6naA4h99UJvo89HB', '5K4W6rqBFWDnAN6FQUkS6x', '5pKCCKE2ajJHZ9KAiaK11H',
+  '1HY2Jd0NmPuamShAr6KMms', '04gDigrS5kc9YWfZHwBETP', '6LuN9FCkKOj5PcnpouEgny', '53XhwfbYqKCa1cC15pYq2q',
+  '7dGJo4pcD2V6oG8kP0tJRR', '0C8ZW7ezQVs4URX5aX7Kqx', '26VFTg2z8YR0cCuwLzESi2', '4nDoRrQiYLoBzwC5BhVJzF',
+  '5cj0lLjcoR7YOSnhnX0Po5', '5WUlDfRSoLAfcVSX1WnrxN', '56ZTgzPBDge0OvCGgMO3OY', '6KImCVD70vtIoJWnq6nGn3',
+  '6S2OmqARrzebs0tKUEyXyp', '0Y5tJX1MQlPlqiwlOH1tJY', '1RyvyyTE3xzB2ZywiAwp0i', '7jVv8c5Fj3E9VhNjxT4snq',
+  '55Aa2cqylxrFIXC767Z865', '7bXgB6jMjp9ATFy66eO08Z', '1URnnhqYAYcrqrcwql10ft', '0hCNtLu0JehylgoiP8L4Gh',
+  '6vWDO969PvNqNYHIOW5v0m', '6jJ0s89eD6GaHleKKya26X', '4dpARuHxo51G3z768sgnrY', '3Nrfpe0tUJi4K4DXYWgMUX',
+  '41MozSoPIsD1dJM0CLPjZF', '00FQb4jTyendYWaN8pK0wa', '0EmeFodog0BfCgMzAIvKQp', '5YGY8feqx7naU7z4HrwZM6',
+   '4VhL8KLjVso4vLfOLVViTb', '4NHQUGzhtTLFvgF5SZesLK', '1dfeR4HaWDbWqFHLkxsg1d',
+];
+
+
 
 function App() {
   const [artists, setArtists] = useState([]);
   const [currentIndex, setCurrentIndex] = useState(-1);
   const [score, setScore] = useState(0);
   const [gameOver, setGameOver] = useState(false);
-  const [loading, setLoading] = useState(true);
   const [currentPage, setCurrentPage] = useState('home');
-  const [loadingProgress, setLoadingProgress] = useState(0);
   const isInitialMount = useRef(true);
+  const [loadedIn, setLoadedIn] = useState(false); 
 
   useEffect(() => {
     if (isInitialMount.current) {
-      console.log('Fetching playlist tracks...');
-      fetchPlaylistTracks();
+      console.log('Fetching artist details...');
+      fetchArtistDetails();
       isInitialMount.current = false;
     }
   }, []);
-
-  const delay = ms => new Promise(res => setTimeout(res, ms)); 
 
   const fetchAccessToken = async () => {
     const params = new URLSearchParams();
@@ -35,88 +53,75 @@ function App() {
         Authorization: `Basic ${btoa(`${CLIENT_ID}:${CLIENT_SECRET}`)}`,
       },
     });
-    console.log('Access token fetched:', response.data.access_token);
     return response.data.access_token;
   };
 
-  const fetchArtistDetails = async (artistIds, accessToken) => {
-    const artistDetails = [];
-    for (const [index, artistId] of artistIds.entries()) {
-      const response = await axios.get(`https://api.spotify.com/v1/artists/${artistId}`, {
-        headers: {
-          Authorization: `Bearer ${accessToken}`,
-        },
-      });
-      artistDetails.push(response.data);
-      setLoadingProgress(Math.round(((index + 1) / artistIds.length) * 95)); 
-      await delay(300); 
-    }
-    return artistDetails;
-  };
-
-  const fetchPlaylistTracks = async () => {
+  const fetchArtistDetails = async () => {
     try {
       const accessToken = await fetchAccessToken();
-      console.log('Access token:', accessToken);
-      const response = await axios.get(`https://api.spotify.com/v1/playlists/${PLAYLIST_ID}/tracks`, {
-        headers: {
-          Authorization: `Bearer ${accessToken}`,
-        },
-      });
-      let fetchedArtists = response.data.items.map(item => ({
-        artistId: item.track.artists[0].id,
-        artistName: item.track.artists[0].name,
-      }));
-
-      console.log('Artists fetched from Spotify:', fetchedArtists);
-
-      fetchedArtists = fetchedArtists.filter((artist, index, self) =>
-        index === self.findIndex((a) => a.artistId === artist.artistId)
-      );
-
-      const artistIds = fetchedArtists.map(artist => artist.artistId);
-      const artistDetails = await fetchArtistDetails(artistIds, accessToken);
-
-      const artistListenersData = await fetchMonthlyListeners(artistIds);
-
-      console.log('Monthly listeners data:', artistListenersData);
-
-      fetchedArtists = fetchedArtists.map(artist => {
-        const artistDetail = artistDetails.find(detail => detail.id === artist.artistId);
-        const artistData = artistListenersData.find(data => data.url.includes(artist.artistId));
+      const artistDetails = [];
+      
+      for (const artistId of ARTIST_IDS) {
+        try {
+          const response = await axios.get(`https://api.spotify.com/v1/artists/${artistId}`, {
+            headers: {
+              Authorization: `Bearer ${accessToken}`,
+            },
+          });
+          artistDetails.push(response.data);
+        } catch (error) {
+          console.error(`Error fetching details for artist ID ${artistId}:`, error.response?.data || error.message);
+        }
+      }
+      
+      const artistListenersData = await fetchMonthlyListeners(ARTIST_IDS);
+  
+      const fetchedArtists = artistDetails.map((artistDetail) => {
+        const artistData = artistListenersData.find(data => data.url.includes(artistDetail.id));
         return {
-          ...artist,
+          artistId: artistDetail.id,
+          artistName: artistDetail.name,
           artistImage: artistDetail.images[0] ? artistDetail.images[0].url : 'https://via.placeholder.com/300',
           monthlyListeners: artistData ? artistData.monthly_listeners.replace(' .', '') : 'N/A'
         };
       });
-
-      console.log('Artists with monthly listeners:', fetchedArtists);
-
+  
       setArtists(shuffleArray(fetchedArtists));
-      setLoadingProgress(100); 
-      await delay(500); 
-      setLoading(false);
+      setLoadedIn(true); 
       setCurrentIndex(0);
     } catch (error) {
-      console.error('Error fetching playlist tracks:', error);
+      console.error('Error fetching artist details:', error.response?.data || error.message);
     }
   };
+  
 
-  const fetchMonthlyListeners = async (artistIds) => {
-    try {
+const fetchMonthlyListeners = async (artistIds) => {
+  console.log(artistIds);
+  try {
       console.log('Fetching monthly listeners for artist IDs:', artistIds);
-      const urls = artistIds.map(id => `https://open.spotify.com/artist/${id}`);
-      const response = await axios.post('http://127.0.0.1:5000/api/artists', { urls });
-      console.log('Monthly listeners response:', response.data);
-      return response.data;
-    } catch (error) {
+      const batchSize = 10;  
+      let allResults = [];
+
+      for (let i = 0; i < artistIds.length; i += batchSize) {
+          const batch = artistIds.slice(i, i + batchSize);
+          const urls = batch.map(id => `https://open.spotify.com/artist/${id}`);
+          const response = await axios.post('https://statify-flask.vercel.app/api/artists', { urls }, {
+              headers: {
+                  'Content-Type': 'application/json'
+              }
+          });
+          allResults = [...allResults, ...response.data];
+      }
+
+      console.log('Monthly listeners response:', allResults);
+      return allResults;
+  } catch (error) {
       console.error('Error fetching monthly listeners:', error);
       return [];
-    }
-  };
+  }
+};
 
-  function shuffleArray(array) {
+function shuffleArray(array) {
     for (let i = array.length - 1; i > 0; i--) {
       const j = Math.floor(Math.random() * (i + 1));
       [array[i], array[j]] = [array[j], array[i]];
@@ -173,7 +178,7 @@ function App() {
     setCurrentPage('home');
   };
 
-  if (loading) return <LoadingScreen progress={loadingProgress} />;
+  if (!loadedIn) return <LoadingScreen />; 
 
   const currentArtist = artists[currentIndex];
   const nextArtist = artists[currentIndex + 1] || {};
@@ -198,13 +203,16 @@ function App() {
   );
 }
 
-const LoadingScreen = ({ progress }) => (
+const LoadingScreen = () => (
   <Flex direction="column" align="center" justify="center" h="100vh" bg="black" color="white">
     <Heading as="h1" color="green">Statify</Heading>
-    <Progress colorScheme="green" size="lg" width="80%" value={progress} mt={8} />
-    <Text color="green">Grabbing a lot of artists...</Text>
+    <img src="https://upload.wikimedia.org/wikipedia/commons/1/19/Spotify_logo_without_text.svg" alt="Spotify Logo" className="spin" style={{ width: '100px', marginTop: '20px' }} />
+    <Text color="green" mt={8}>Grabbing a lot of artists...</Text>
   </Flex>
 );
+
+
+
 
 const HomePage = ({ setCurrentPage }) => (
   <Flex direction="column" align="center" h="100vh" bg="black" color="white" overflowY="auto" p={[4, 6, 8]}>
@@ -259,6 +267,7 @@ const ArtistBox = ({ artist }) => (
       margin: '10px'
     }}
   >
+    <LazyLoad>
     <div
       style={{
         backgroundImage: `url(${artist.artistImage})`,
@@ -274,6 +283,7 @@ const ArtistBox = ({ artist }) => (
         borderRadius: '10px'
       }}
     />
+    </LazyLoad>
     <div
       style={{
         position: 'relative',
@@ -306,6 +316,7 @@ const NextArtistBox = ({ artist, gameOver, handleGuess }) => (
       margin: '10px'
     }}
   >
+  <LazyLoad>
     <div
       style={{
         backgroundImage: `url(${artist.artistImage})`,
@@ -321,6 +332,7 @@ const NextArtistBox = ({ artist, gameOver, handleGuess }) => (
         borderRadius: '10px'
       }}
     />
+    </LazyLoad>
     <div
       style={{
         position: 'relative',
