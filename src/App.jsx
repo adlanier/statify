@@ -4,11 +4,11 @@ import { useEffect, useState, useRef } from 'react';
 import './App.css';
 import LazyLoad from 'react-lazyload';
 
-
+const BATCH_SIZE = 3; // Initial number of artists to load
 
 const CLIENT_ID = import.meta.env.VITE_CLIENT_ID;
 const CLIENT_SECRET = import.meta.env.VITE_CLIENT_SECRET;
-const ARTIST_IDS = [
+const OG_ARTIST_IDS = [
   '6eUKZXaKkcviH0Ku9w2n3V', '3TVXtAsR1Inumwj472S9r4', '246dkjvS1zLTtiykXe5h60', 
   '2YZyLoL8N0Wb9xBt1NhZWg','06HL4z0CvFAxyc27GXpf02','6qqNVTkY8uBg9cP3Jd7DAH',
   '66CXWjxzNUsdJxJ2JdwvnR', '06HL4z0CvFAxyc27GXpf02',
@@ -24,22 +24,26 @@ const ARTIST_IDS = [
   '41MozSoPIsD1dJM0CLPjZF', '00FQb4jTyendYWaN8pK0wa', '0EmeFodog0BfCgMzAIvKQp', '5YGY8feqx7naU7z4HrwZM6',
    '4VhL8KLjVso4vLfOLVViTb', '4NHQUGzhtTLFvgF5SZesLK', '1dfeR4HaWDbWqFHLkxsg1d',
 ];
+let ARTIST_IDS = [...OG_ARTIST_IDS];
 
 
 
 function App() {
+
   const [artists, setArtists] = useState([]);
   const [currentIndex, setCurrentIndex] = useState(-1);
   const [score, setScore] = useState(0);
   const [gameOver, setGameOver] = useState(false);
   const [currentPage, setCurrentPage] = useState('home');
+  const [seenArtists, setSeenArtists] = useState(new Set());
+  const [isLoading, setIsLoading] = useState(false);
   const isInitialMount = useRef(true);
-  const [loadedIn, setLoadedIn] = useState(false); 
+  const [loadedIn, setLoadedIn] = useState(false);
 
   useEffect(() => {
     if (isInitialMount.current) {
       console.log('Fetching artist details...');
-      fetchArtistDetails();
+      fetchInitialArtists();
       isInitialMount.current = false;
     }
   }, []);
@@ -56,45 +60,73 @@ function App() {
     return response.data.access_token;
   };
 
-  const fetchArtistDetails = async () => {
+  const fetchInitialArtists = async () => {
+    await fetchRandomArtists(BATCH_SIZE);
+    setLoadedIn(true);
+    setCurrentIndex(0);
+  };
+  
+  
+
+  const fetchRandomArtists = async (count) => {
     try {
       const accessToken = await fetchAccessToken();
-      const artistDetails = [];
-      
-      for (const artistId of ARTIST_IDS) {
-        try {
-          const response = await axios.get(`https://api.spotify.com/v1/artists/${artistId}`, {
-            headers: {
-              Authorization: `Bearer ${accessToken}`,
-            },
-          });
-          artistDetails.push(response.data);
-        } catch (error) {
-          console.error(`Error fetching details for artist ID ${artistId}:`, error.response?.data || error.message);
+      let artistDetails = [];
+      let newSeenArtists = new Set(seenArtists);
+  
+      while (artistDetails.length < count) {
+        let remainingArtists = ARTIST_IDS.filter(artistId => !newSeenArtists.has(artistId));
+  
+        if (remainingArtists.length === 0) {
+          // Replenish the ARTIST_IDS array
+          console.log("Replenish artists...");
+          newSeenArtists = new Set();  // Clear seen artists
+          ARTIST_IDS = [...OG_ARTIST_IDS];
+          shuffleArray(ARTIST_IDS);
+          remainingArtists = ARTIST_IDS;
         }
+  
+        const randomIndex = Math.floor(Math.random() * remainingArtists.length);
+        const artistId = remainingArtists[randomIndex];
+  
+        if (!artistId) break;
+  
+        const response = await axios.get(`https://api.spotify.com/v1/artists/${artistId}`, {
+          headers: {
+            Authorization: `Bearer ${accessToken}`,
+          },
+          params: {
+            fields: 'id,name,images'
+          }
+        });
+  
+        artistDetails.push(response.data);
+        newSeenArtists.add(artistId);
+        ARTIST_IDS.splice(ARTIST_IDS.indexOf(artistId), 1);  // Remove the artist ID to avoid repetition
       }
-      
-      const artistListenersData = await fetchMonthlyListeners(ARTIST_IDS);
+  
+      const artistListenersData = await fetchMonthlyListeners(artistDetails.map(artist => artist.id));
   
       const fetchedArtists = artistDetails.map((artistDetail) => {
         const artistData = artistListenersData.find(data => data.url.includes(artistDetail.id));
         return {
           artistId: artistDetail.id,
           artistName: artistDetail.name,
-          artistImage: artistDetail.images[0] ? artistDetail.images[0].url : 'https://via.placeholder.com/300',
+          artistImage: artistDetail.images[0] ? `${artistDetail.images[0].url}?w=300&h=300&fit=scale` : 'https://via.placeholder.com/300',
           monthlyListeners: artistData ? artistData.monthly_listeners.replace(' .', '') : 'N/A'
         };
       });
   
-      setArtists(shuffleArray(fetchedArtists));
-      setLoadedIn(true); 
-      setCurrentIndex(0);
+      setSeenArtists(newSeenArtists);
+      setArtists(prevArtists => {
+        const updatedArtists = [...prevArtists, ...shuffleArray(fetchedArtists)];
+        return updatedArtists;
+      });
     } catch (error) {
       console.error('Error fetching artist details:', error.response?.data || error.message);
     }
   };
   
-
 const fetchMonthlyListeners = async (artistIds) => {
   console.log(artistIds);
   try {
@@ -121,13 +153,14 @@ const fetchMonthlyListeners = async (artistIds) => {
   }
 };
 
-function shuffleArray(array) {
-    for (let i = array.length - 1; i > 0; i--) {
-      const j = Math.floor(Math.random() * (i + 1));
-      [array[i], array[j]] = [array[j], array[i]];
-    }
-    return array;
-  };
+const shuffleArray = (array) => {
+  for (let i = array.length - 1; i > 0; i--) {
+    const j = Math.floor(Math.random() * (i + 1));
+    [array[i], array[j]] = [array[j], array[i]];
+  }
+  return array;
+};
+
 
   const parseMonthlyListeners = (value) => {
     if (value.endsWith('M')) {
@@ -139,7 +172,7 @@ function shuffleArray(array) {
     return parseFloat(value);
   };
   
-  const handleGuess = (guessHigher) => {
+  const handleGuess = async (guessHigher) => {
     if (!artists.length || currentIndex >= artists.length - 1) {
       setGameOver(true);
       return;
@@ -152,33 +185,48 @@ function shuffleArray(array) {
     const nextArtistListeners = parseMonthlyListeners(nextArtist.monthlyListeners);
   
     const isCorrect = (guessHigher && nextArtistListeners > currentArtistListeners) ||
-      (!guessHigher && nextArtistListeners < currentArtistListeners);
+      (!guessHigher && nextArtistListeners < currentArtistListeners) ||
+      (currentArtistListeners === nextArtistListeners); // Treat equality as correct guess
   
     if (isCorrect) {
       setScore(score + 1);
       setCurrentIndex(currentIndex + 1);
+      if (artists.length - currentIndex <= 3) {
+        await fetchRandomArtists(4);  // Load four more random artists
+      }
     } else {
       setGameOver(true);
     }
   };
-
-  const resetGameState = () => {
-    setArtists(shuffleArray([...artists]));
-    setScore(0);
-    setCurrentIndex(0);
-    setGameOver(false);
-  };
-
-  const resetGame = () => {
-    resetGameState();
-  };
+  
 
   const handleBackToHome = () => {
-    resetGameState();
     setCurrentPage('home');
+    fetchInitialArtists();
   };
 
+  
+  const resetGameState = () => {
+    setArtists([]);
+    setScore(0);
+    setCurrentIndex(-1);
+    setGameOver(false);
+    setSeenArtists(new Set());  // Clear seen artists
+    ARTIST_IDS = [...OG_ARTIST_IDS];
+    shuffleArray(ARTIST_IDS);  // Reshuffle artist IDs
+  };
+  
+  const resetGame = async () => {
+    setIsLoading(true);
+    resetGameState();
+    await fetchInitialArtists();
+    setIsLoading(false);
+  };
+  
+  
+
   if (!loadedIn) return <LoadingScreen />; 
+  if (isLoading) return <SmallLoadingScreen />;
 
   const currentArtist = artists[currentIndex];
   const nextArtist = artists[currentIndex + 1] || {};
@@ -201,22 +249,29 @@ function shuffleArray(array) {
       )}
     </ChakraProvider>
   );
-}
+}  
 
 const LoadingScreen = () => (
   <Flex direction="column" align="center" justify="center" h="100vh" bg="black" color="white">
-    <Heading as="h1" color="green">Statify</Heading>
+    <Heading as="h1" color="#1DB954">Statify</Heading>
     <img src="https://upload.wikimedia.org/wikipedia/commons/1/19/Spotify_logo_without_text.svg" alt="Spotify Logo" className="spin" style={{ width: '100px', marginTop: '20px' }} />
-    <Text color="green" mt={8}>Grabbing a lot of artists...</Text>
+    <Text color="#1DB954" mt={8}>Grabbing a lot of artists...</Text>
+  </Flex>
+);
+
+const SmallLoadingScreen = () => (
+  <Flex direction="column" align="center" justify="center" h="100vh" bg="black" color="white">
+    <img src="https://upload.wikimedia.org/wikipedia/commons/1/19/Spotify_logo_without_text.svg" alt="Spotify Logo" className="spin" style={{ width: '100px', marginTop: '20px' }} />
   </Flex>
 );
 
 
 
 
+
 const HomePage = ({ setCurrentPage }) => (
   <Flex direction="column" align="center" h="100vh" bg="black" color="white" overflowY="auto" p={[4, 6, 8]}>
-    <Heading as="h1" mt={[4, 6, 8]} color="green" textAlign="center">Statify</Heading>
+    <Heading as="h1" mt={[4, 6, 8]} color="#1DB954" textAlign="center">Statify</Heading>
     <Text mt={[4, 6, 8]} fontSize={["md", "lg", "xl"]} textAlign="center" p={[4, 6, 8]}>
       Welcome to Statify! Statify is a higher or lower guessing game where you guess if a random Spotify artist has a higher or lower amount of monthly listeners than the current Spotify artist. 
     </Text>
@@ -224,26 +279,21 @@ const HomePage = ({ setCurrentPage }) => (
       How high of a streak can you get?
     </Text>
     <Button mt={[4, 6, 8]} size="lg" colorScheme="green" onClick={() => setCurrentPage('game')}>Start Game</Button>
-    <Text  mt={[4, 6, 8]}>
+    <Text mt={[4, 6, 8]}>
       Please report any bugs or concerns to adrianlanier33@gmail.com
     </Text>
   </Flex>
 );
 
+
 const GamePage = ({ currentArtist, nextArtist, score, gameOver, handleGuess, resetGame, handleBackToHome }) => (
   <Flex direction="column" align="center" h="100vh" bg="black" overflowY="auto" p={[4, 6, 8]}>
-    <Heading as="h1" color="green" textAlign="center" fontFamily="Proxima Nova" mt={[4, 6, 8]}>Statify</Heading>
+    <Heading as="h1" color="#1DB954" textAlign="center" fontFamily="Proxima Nova" mt={[4, 6, 8]}>Statify</Heading>
 
     <Flex direction={["column", "row"]} justify="center" align="center" flex="1" w="100%" className="App" p={[4, 6, 8]}>
-      {/* Box for current artist */}
-      <ArtistBox artist={currentArtist} />
-
-      {!gameOver && (
-        <VSBox />
-      )}
-
-      {/* Box for next artist */}
-      <NextArtistBox artist={nextArtist} gameOver={gameOver} handleGuess={handleGuess} />
+      {currentArtist && <ArtistBox artist={currentArtist} />}
+      {!gameOver && <VSBox />}
+      {nextArtist && <NextArtistBox artist={nextArtist} gameOver={gameOver} handleGuess={handleGuess} />}
     </Flex>
 
     <ScoreDisplay score={score} />
@@ -254,54 +304,72 @@ const GamePage = ({ currentArtist, nextArtist, score, gameOver, handleGuess, res
   </Flex>
 );
 
-const ArtistBox = ({ artist }) => (
-  <Box
-    h={["auto", "100%"]}
-    w={["100%", "50%"]}
-    textAlign="center"
-    p={[4, 6, 8]}
-    style={{
-      position: 'relative',
-      overflow: 'hidden',
-      borderRadius: '10px',
-      margin: '10px'
-    }}
-  >
-    <LazyLoad>
-    <div
-      style={{
-        backgroundImage: `url(${artist.artistImage})`,
-        backgroundSize: 'cover',
-        backgroundPosition: 'center',
-        filter: 'brightness(0.4)',
-        width: '100%',
-        height: '100%',
-        position: 'absolute',
-        top: 0,
-        left: 0,
-        zIndex: 1,
-        borderRadius: '10px'
-      }}
-    />
-    </LazyLoad>
-    <div
+
+
+
+const ArtistBox = ({ artist }) => {
+  if (!artist) {
+    return null;
+  }
+
+  return (
+    <Box
+      h={["auto", "100%"]}
+      w={["100%", "50%"]}
+      textAlign="center"
+      p={[4, 6, 8]}
       style={{
         position: 'relative',
-        top: 100,
-        zIndex: 2,
-        color: 'white',
-        textAlign: 'center',
-        padding: '20px',
-        fontSize: '2.2rem',
-        fontFamily: 'Proxima Nova'
+        overflow: 'hidden',
+        borderRadius: '10px',
+        margin: '10px'
       }}
     >
-      <b>{artist.artistName}</b>
-      <br />
-      has <b>{artist.monthlyListeners}</b> monthly listeners
-    </div>
-  </Box>
-);
+      <LazyLoad>
+        <div
+          style={{
+            backgroundImage: `url(${artist.artistImage})`,
+            backgroundSize: 'cover',
+            backgroundPosition: 'center',
+            filter: 'brightness(0.4)',
+            width: '100%',
+            height: '100%',
+            position: 'absolute',
+            top: 0,
+            left: 0,
+            zIndex: 1,
+            borderRadius: '10px'
+          }}
+        />
+      </LazyLoad>
+      <div
+        style={{
+          position: 'relative',
+          top: '50%',
+          transform: 'translateY(-50%)',
+          zIndex: 2,
+          color: 'white',
+          textAlign: 'center',
+          padding: '20px',
+          fontSize: ['1rem', '1.5rem', '2.2rem'],
+          fontFamily: 'Proxima Nova'
+        }}
+      >
+       <Box as="b" fontSize={["2rem", "2.5rem", "3rem"]}>{artist.artistName}</Box>
+        <br />
+        has 
+        <br />
+        <Box as="b" fontSize={["2rem", "2.5rem", "3rem"]}>{artist.monthlyListeners}</Box>
+        <br />
+         monthly listeners
+      </div>
+    </Box>
+  );
+};
+
+
+
+
 
 const NextArtistBox = ({ artist, gameOver, handleGuess }) => (
   <Box
@@ -316,45 +384,46 @@ const NextArtistBox = ({ artist, gameOver, handleGuess }) => (
       margin: '10px'
     }}
   >
-  <LazyLoad>
-    <div
-      style={{
-        backgroundImage: `url(${artist.artistImage})`,
-        backgroundSize: 'cover',
-        backgroundPosition: 'center',
-        filter: 'brightness(0.4)',
-        width: '100%',
-        height: '100%',
-        position: 'absolute',
-        top: 0,
-        left: 0,
-        zIndex: 1,
-        borderRadius: '10px'
-      }}
-    />
+    <LazyLoad>
+      <div
+        style={{
+          backgroundImage: `url(${artist.artistImage})`,
+          backgroundSize: 'cover',
+          backgroundPosition: 'center',
+          filter: 'brightness(0.4)',
+          width: '100%',
+          height: '100%',
+          position: 'absolute',
+          top: 0,
+          left: 0,
+          zIndex: 1,
+          borderRadius: '10px'
+        }}
+      />
     </LazyLoad>
     <div
       style={{
         position: 'relative',
-        top: 100,
+        top: '50%',
+        transform: 'translateY(-50%)',
         zIndex: 2,
         color: 'white',
         textAlign: 'center',
         padding: '20px',
-        fontSize: '2.2rem',
+        fontSize: ['1rem', '1.5rem', '2.2rem'],
         fontFamily: 'Proxima Nova'
       }}
     >
       {gameOver ? null : (
         <div>
-          <div style={{ textAlign: 'center' }}><b>Does "{artist.artistName}"</b> have a higher or lower amount of monthly listeners?</div>
+          <div style={{ textAlign: 'center' }}>Does <br /> <Box as="b" fontSize={["2rem", "2.5rem", "3rem"]}>{artist.artistName}</Box> <br /> have a higher or lower amount of monthly listeners?</div>
           <div style={{ marginTop: '20px' }}>
-            <Stack spacing={4} direction="row" justify="center" mt={4}>
+            <Stack spacing={4} direction={["column", "row"]} justify="center" mt={4}>
               <Button
                 size="lg"
                 colorScheme="whiteAlpha"
                 onClick={() => handleGuess(true)}
-                _hover={{ bg: "green.400", color: "white" }}
+                _hover={{ bg: "#1DB954.400", color: "white" }}
               >
                 Higher &#128200;
               </Button>
@@ -362,7 +431,7 @@ const NextArtistBox = ({ artist, gameOver, handleGuess }) => (
                 size="lg"
                 colorScheme="whiteAlpha"
                 onClick={() => handleGuess(false)}
-                _hover={{ bg: "green.400", color: "white" }}
+                _hover={{ bg: "#1DB954.400", color: "white" }}
               >
                 Lower &#128201;
               </Button>
@@ -374,58 +443,61 @@ const NextArtistBox = ({ artist, gameOver, handleGuess }) => (
   </Box>
 );
 
+
+
+
 const VSBox = () => (
-  <div
-    style={{
-      position: 'absolute',
-      background: 'green',
-      top: '50%',
-      left: '50%',
-      transform: 'translate(-50%, -50%)',
-      color: 'black',
-      borderRadius: '50%',
-      width: '80px',
-      height: '80px',
-      display: 'flex',
-      justifyContent: 'center',
-      alignItems: 'center',
-      fontSize: '1.5rem',
-      fontWeight: 'bold',
-      zIndex: 20,
-      fontFamily: 'Proxima Nova'
-    }}
+  <Box
+    position="absolute"
+    bg="#1DB954"
+    top={["80%", "50%"]}
+    left="50%"
+    transform="translate(-50%, -50%)"
+    color="black"
+    borderRadius="50%"
+    w={["60px", "80px"]}
+    h={["60px", "80px"]}
+    display="flex"
+    justifyContent="center"
+    alignItems="center"
+    fontSize={["1rem", "1.5rem"]}
+    fontWeight="bold"
+    zIndex="20"
+    fontFamily="Proxima Nova"
   >
     VS
-  </div>
+  </Box>
 );
 
+
+
 const ScoreDisplay = ({ score }) => (
-  <div
-    style={{
-      position: 'fixed',
-      bottom: '20px',
-      right: '20px',
-      backgroundColor: 'green',
-      color: 'black',
-      borderRadius: '8px',
-      padding: '12px 24px',
-      fontSize: '1.5rem',
-      zIndex: 10,
-      fontFamily: 'Proxima Nova'
-    }}
+  <Box
+    position="fixed"
+    bottom="20px"
+    right="20px"
+    bg="#1DB954"
+    color="black"
+    borderRadius="8px"
+    p="12px 24px"
+    fontSize={["1rem", "1.5rem"]}
+    zIndex="10"
+    fontFamily="Proxima Nova"
   >
     Score: {score}
-  </div>
+  </Box>
 );
+
+
 
 const GameOverOverlay = ({ score, resetGame, handleBackToHome }) => (
   <Box
     position="fixed"
     top="0"
     left="0"
-    width="100vw"
-    height="100vh"
-    backgroundColor="rgba(0, 0, 0, 0.8)"
+    w="100vw"
+    h="100vh"
+    bg="rgba(0, 0, 0, 0.8)"
     display="flex"
     flexDirection="column"
     justifyContent="center"
@@ -435,11 +507,14 @@ const GameOverOverlay = ({ score, resetGame, handleBackToHome }) => (
     fontFamily="Proxima Nova"
     overflowY="auto"
   >
-    <Text fontSize={["2xl", "4xl"]} mb={4}>Game Over!</Text>
+    <Text fontSize={["2xl", "3xl", "4xl"]} mb={4}>Game Over!</Text>
     <Text fontSize={["xl", "2xl"]} mb={8}>Your Score: {score}</Text>
     <Button size="lg" colorScheme="whiteAlpha" onClick={resetGame} mb={4}>Play Again</Button>
     <Button size="lg" colorScheme="whiteAlpha" onClick={handleBackToHome}>Back to Home</Button>
   </Box>
 );
+
+
+
 
 export default App;
