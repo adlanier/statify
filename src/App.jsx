@@ -10,8 +10,8 @@ const CLIENT_SECRET = import.meta.env.VITE_CLIENT_SECRET;
 const OG_ARTIST_IDS = [
   '6eUKZXaKkcviH0Ku9w2n3V', '3TVXtAsR1Inumwj472S9r4', '246dkjvS1zLTtiykXe5h60', 
   '2YZyLoL8N0Wb9xBt1NhZWg','06HL4z0CvFAxyc27GXpf02','6qqNVTkY8uBg9cP3Jd7DAH',
-  '66CXWjxzNUsdJxJ2JdwvnR', '06HL4z0CvFAxyc27GXpf02',
-  '1uNFoZAHBGtllmzznpCI3s', '6qqNVTkY8uBg9cP3Jd7DAH', '1Xyo4u8uXC1ZmMpatF05PJ',
+  '66CXWjxzNUsdJxJ2JdwvnR', '06HL4z0CvFAxyc27GXpf02','1uNFoZAHBGtllmzznpCI3s', 
+  '6qqNVTkY8uBg9cP3Jd7DAH', '1Xyo4u8uXC1ZmMpatF05PJ','4V8LLVI7PbaPR0K2TGSxFF',
   '6M2wZ9GZgrQXHCFfjv46we', '4q3ewBCX7sLwd24euuV69X', '1vyhD5VmyZ7KMfW5gqLgo5', '7n2wHs1TKAczGzO7Dd2rGr',
   '0du5cEVh5yTK9QJze8zA0C', '4kYSro6naA4h99UJvo89HB', '5K4W6rqBFWDnAN6FQUkS6x', '5pKCCKE2ajJHZ9KAiaK11H',
   '1HY2Jd0NmPuamShAr6KMms', '04gDigrS5kc9YWfZHwBETP', '6LuN9FCkKOj5PcnpouEgny', '53XhwfbYqKCa1cC15pYq2q',
@@ -21,7 +21,12 @@ const OG_ARTIST_IDS = [
   '55Aa2cqylxrFIXC767Z865', '7bXgB6jMjp9ATFy66eO08Z', '1URnnhqYAYcrqrcwql10ft', '0hCNtLu0JehylgoiP8L4Gh',
   '6vWDO969PvNqNYHIOW5v0m', '6jJ0s89eD6GaHleKKya26X', '4dpARuHxo51G3z768sgnrY', '3Nrfpe0tUJi4K4DXYWgMUX',
   '41MozSoPIsD1dJM0CLPjZF', '00FQb4jTyendYWaN8pK0wa', '0EmeFodog0BfCgMzAIvKQp', '5YGY8feqx7naU7z4HrwZM6',
-   '4VhL8KLjVso4vLfOLVViTb', '4NHQUGzhtTLFvgF5SZesLK', '1dfeR4HaWDbWqFHLkxsg1d','2cnMpRsOVqtPMfq7YiFE6K','0ECwFtbIWEVNwjlrfc6xoL','6DCIj8jNaNpBz8e5oKFPtp','5NGO30tJxFlKixkPSgXcFE','0rvjqX7ttXeg3mTy8Xscbt','6PfSUFtkMVoDkx4MQkzOi3','3gd8FJtBJtkRxdfbTu19U2','3bYcjbVAN3rAuU3TMzw2mB','16oZKvXb6WkQlVAjwo2Wbg','79hrYiudVcFyyxyJW0ipTy','3mIj9lX2MWuHmhNCA7LSCW','7GlBOeep6PqTfFi59PTUUN','2RQXRUsr4IW1f3mKyKsy4B','1eEfMU2AhEo7XnKgL7c304','1QAJqy2dA3ihHBFIHRphZj','26T3LtbuGT1Fu9m0eRq5X3','77tT1kLj6mCWtFNqiOmP9H','34EP7KEpOjXcM2TCat1ISk','3Rq3YOF9YG9YfCWD4D56RZ','4V8LLVI7PbaPR0K2TGSxFF'
+   '4VhL8KLjVso4vLfOLVViTb', '4NHQUGzhtTLFvgF5SZesLK', '1dfeR4HaWDbWqFHLkxsg1d','2cnMpRsOVqtPMfq7YiFE6K',
+   '0ECwFtbIWEVNwjlrfc6xoL','6DCIj8jNaNpBz8e5oKFPtp','5NGO30tJxFlKixkPSgXcFE','0rvjqX7ttXeg3mTy8Xscbt',
+   '6PfSUFtkMVoDkx4MQkzOi3','3gd8FJtBJtkRxdfbTu19U2','3bYcjbVAN3rAuU3TMzw2mB','16oZKvXb6WkQlVAjwo2Wbg',
+   '79hrYiudVcFyyxyJW0ipTy','3mIj9lX2MWuHmhNCA7LSCW','7GlBOeep6PqTfFi59PTUUN','2RQXRUsr4IW1f3mKyKsy4B',
+   '1eEfMU2AhEo7XnKgL7c304','1QAJqy2dA3ihHBFIHRphZj','26T3LtbuGT1Fu9m0eRq5X3','77tT1kLj6mCWtFNqiOmP9H',
+   '34EP7KEpOjXcM2TCat1ISk','3Rq3YOF9YG9YfCWD4D56RZ',
 ];
 let ARTIST_IDS = [...OG_ARTIST_IDS];
 
@@ -284,7 +289,7 @@ const HomePage = ({ setCurrentPage }) => (
 
 const GamePage = ({ currentArtist, nextArtist, score, gameOver, handleGuess, resetGame, handleBackToHome }) => (
   <Flex direction="column" align="center" h="100vh" bg="black" overflowY="auto" p={[4, 6, 8]}>
-    <Heading as="h1" color="#1DB954" textAlign="center" fontFamily="Proxima Nova" mt={[4, 6, 8]}>Statify</Heading>
+    <Heading as="h1" color="#1DB954" textAlign="center" mt={[4, 6, 8]}>Statify</Heading>
 
     <Flex direction={["column", "row"]} justify="center" align="center" flex="1" w="100%" className="App" p={[4, 6, 8]}>
       {currentArtist && <ArtistBox artist={currentArtist} />}
@@ -438,27 +443,33 @@ const NextArtistBox = ({ artist, gameOver, handleGuess }) => (
 
 
 
+// const VSBox = () => (
+//   <Box
+//     position="absolute"
+//     bg="#1DB954"
+//     top={["80%", "50%"]}
+//     left="50%"
+//     transform="translate(-50%, -50%)"
+//     color="black"
+//     borderRadius="50%"
+//     w={["60px", "80px"]}
+//     h={["60px", "80px"]}
+//     display="flex"
+//     justifyContent="center"
+//     alignItems="center"
+//     fontSize={["1rem", "1.5rem"]}
+//     fontWeight="bold"
+//     zIndex="20"
+//     fontFamily="Proxima Nova"
+//   >
+//     VS
+//   </Box>
+// );
+
 const VSBox = () => (
-  <Box
-    position="absolute"
-    bg="#1DB954"
-    top={["80%", "50%"]}
-    left="50%"
-    transform="translate(-50%, -50%)"
-    color="black"
-    borderRadius="50%"
-    w={["60px", "80px"]}
-    h={["60px", "80px"]}
-    display="flex"
-    justifyContent="center"
-    alignItems="center"
-    fontSize={["1rem", "1.5rem"]}
-    fontWeight="bold"
-    zIndex="20"
-    fontFamily="Proxima Nova"
-  >
+  <div className="vs-circle">
     VS
-  </Box>
+  </div>
 );
 
 
@@ -505,7 +516,6 @@ const GameOverOverlay = ({ score, resetGame, handleBackToHome }) => (
     <Button size="lg" colorScheme="whiteAlpha" onClick={handleBackToHome}>Back to Home</Button>
   </Box>
 );
-
 
 
 

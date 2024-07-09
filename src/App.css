@@ -32,3 +32,62 @@ body {
 .spin {
   animation: spin 2s linear infinite;
 }
+
+/* For larger screens */
+@media (min-width: 768px) {
+  .vs-circle {
+    position: absolute;
+    background: #1DB954; /* Spotify green */
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    color: black;
+    border-radius: 50%;
+    width: 80px;
+    height: 80px;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    font-size: 1.5rem;
+    font-weight: bold;
+    z-index: 20;
+  }
+}
+
+/* For smaller screens */
+@media (max-width: 767px) {
+  .vs-circle {
+    position: relative;
+    background: #1DB954; /* Spotify green */
+    margin: 20px auto;
+    color: black;
+    border-radius: 50%;
+    width: 80px;
+    height: 80px;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    font-size: 1.5rem;
+    font-weight: bold;
+    z-index: 20;
+  }
+
+  .artist-container {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+  }
+
+  .artist-box {
+    width: 90%;
+    margin-bottom: 20px;
+  }
+
+  .guess-buttons {
+    display: flex;
+    justify-content: space-between;
+    width: 90%;
+    margin: 20px auto;
+  }
+}
+
