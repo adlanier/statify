@@ -280,7 +280,7 @@ const HomePage = ({ setCurrentPage }) => (
       How high of a streak can you get?
     </Text>
     <Button mt={[4, 6, 8]} size="lg" colorScheme="green" onClick={() => setCurrentPage('game')}>Start Game</Button>
-    <Text mt={[4, 6, 8]}>
+    <Text mt={[4, 6, 8]} textAlign="center">
       Please report any bugs or concerns to adrianlanier33@gmail.com
     </Text>
   </Flex>
