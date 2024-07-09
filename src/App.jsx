@@ -66,8 +66,6 @@ function App() {
     setCurrentIndex(0);
   };
   
-  
-
   const fetchRandomArtists = async (count) => {
     try {
       const accessToken = await fetchAccessToken();
@@ -78,7 +76,6 @@ function App() {
         let remainingArtists = ARTIST_IDS.filter(artistId => !newSeenArtists.has(artistId));
   
         if (remainingArtists.length === 0) {
-          // Replenish the ARTIST_IDS array
           console.log("Replenish artists...");
           newSeenArtists = new Set();  // Clear seen artists
           ARTIST_IDS = [...OG_ARTIST_IDS];
@@ -102,7 +99,7 @@ function App() {
   
         artistDetails.push(response.data);
         newSeenArtists.add(artistId);
-        ARTIST_IDS.splice(ARTIST_IDS.indexOf(artistId), 1);  // Remove the artist ID to avoid repetition
+        ARTIST_IDS.splice(ARTIST_IDS.indexOf(artistId), 1);
       }
   
       const artistListenersData = await fetchMonthlyListeners(artistDetails.map(artist => artist.id));
