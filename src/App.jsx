@@ -3,6 +3,7 @@ import axios from 'axios';
 import { useEffect, useState, useRef } from 'react';
 import './App.css';
 import theme from './theme';
+import { OG_ARTIST_IDS } from './ArtistIDs';
 
 
 
@@ -11,27 +12,6 @@ const BATCH_SIZE = 3; // Initial number of artists to load
 
 const CLIENT_ID = import.meta.env.VITE_CLIENT_ID;
 const CLIENT_SECRET = import.meta.env.VITE_CLIENT_SECRET;
-const OG_ARTIST_IDS = [
-  '6eUKZXaKkcviH0Ku9w2n3V', '3TVXtAsR1Inumwj472S9r4', '246dkjvS1zLTtiykXe5h60', 
-  '2YZyLoL8N0Wb9xBt1NhZWg','06HL4z0CvFAxyc27GXpf02','6qqNVTkY8uBg9cP3Jd7DAH',
-  '66CXWjxzNUsdJxJ2JdwvnR', '06HL4z0CvFAxyc27GXpf02','1uNFoZAHBGtllmzznpCI3s', 
-  '6qqNVTkY8uBg9cP3Jd7DAH', '1Xyo4u8uXC1ZmMpatF05PJ','4V8LLVI7PbaPR0K2TGSxFF',
-  '6M2wZ9GZgrQXHCFfjv46we', '4q3ewBCX7sLwd24euuV69X', '1vyhD5VmyZ7KMfW5gqLgo5', '7n2wHs1TKAczGzO7Dd2rGr',
-  '0du5cEVh5yTK9QJze8zA0C', '4kYSro6naA4h99UJvo89HB', '5K4W6rqBFWDnAN6FQUkS6x', '5pKCCKE2ajJHZ9KAiaK11H',
-  '1HY2Jd0NmPuamShAr6KMms', '04gDigrS5kc9YWfZHwBETP', '6LuN9FCkKOj5PcnpouEgny', '53XhwfbYqKCa1cC15pYq2q',
-  '7dGJo4pcD2V6oG8kP0tJRR', '0C8ZW7ezQVs4URX5aX7Kqx', '26VFTg2z8YR0cCuwLzESi2', '4nDoRrQiYLoBzwC5BhVJzF',
-  '5cj0lLjcoR7YOSnhnX0Po5', '5WUlDfRSoLAfcVSX1WnrxN', '56ZTgzPBDge0OvCGgMO3OY', '6KImCVD70vtIoJWnq6nGn3',
-  '6S2OmqARrzebs0tKUEyXyp', '0Y5tJX1MQlPlqiwlOH1tJY', '1RyvyyTE3xzB2ZywiAwp0i', '7jVv8c5Fj3E9VhNjxT4snq',
-  '55Aa2cqylxrFIXC767Z865', '7bXgB6jMjp9ATFy66eO08Z', '1URnnhqYAYcrqrcwql10ft', '0hCNtLu0JehylgoiP8L4Gh',
-  '6vWDO969PvNqNYHIOW5v0m', '6jJ0s89eD6GaHleKKya26X', '4dpARuHxo51G3z768sgnrY', '3Nrfpe0tUJi4K4DXYWgMUX',
-  '41MozSoPIsD1dJM0CLPjZF', '00FQb4jTyendYWaN8pK0wa', '0EmeFodog0BfCgMzAIvKQp', '5YGY8feqx7naU7z4HrwZM6',
-   '4VhL8KLjVso4vLfOLVViTb', '4NHQUGzhtTLFvgF5SZesLK', '1dfeR4HaWDbWqFHLkxsg1d','2cnMpRsOVqtPMfq7YiFE6K',
-   '0ECwFtbIWEVNwjlrfc6xoL','6DCIj8jNaNpBz8e5oKFPtp','5NGO30tJxFlKixkPSgXcFE','0rvjqX7ttXeg3mTy8Xscbt',
-   '6PfSUFtkMVoDkx4MQkzOi3','3gd8FJtBJtkRxdfbTu19U2','3bYcjbVAN3rAuU3TMzw2mB','16oZKvXb6WkQlVAjwo2Wbg',
-   '79hrYiudVcFyyxyJW0ipTy','3mIj9lX2MWuHmhNCA7LSCW','7GlBOeep6PqTfFi59PTUUN','2RQXRUsr4IW1f3mKyKsy4B',
-   '1eEfMU2AhEo7XnKgL7c304','1QAJqy2dA3ihHBFIHRphZj','26T3LtbuGT1Fu9m0eRq5X3','77tT1kLj6mCWtFNqiOmP9H',
-   '34EP7KEpOjXcM2TCat1ISk','3Rq3YOF9YG9YfCWD4D56RZ',
-];
 let ARTIST_IDS = [...OG_ARTIST_IDS];
 
 
@@ -52,7 +32,6 @@ function App() {
 
   useEffect(() => {
     if (isInitialMount.current) {
-      console.log('Fetching artist details...');
       fetchInitialArtists();
       isInitialMount.current = false;
     }
@@ -231,9 +210,12 @@ const shuffleArray = (array) => {
     
   
 
-  const handleBackToHome = () => {
+  const handleBackToHome = async () => {
     setCurrentPage('home');
-    fetchInitialArtists();
+    setIsLoading(true);
+    resetGameState();
+    await fetchInitialArtists();
+    setIsLoading(false);
   };
 
   
@@ -304,16 +286,16 @@ const HomePage = ({ setCurrentPage }) => (
   <Flex direction="column" align="center" h="100vh" color="white" overflowY="auto" p={[4, 6, 8]} bg="black">
     <Heading as="h1" mt={[4, 6, 8]} color="#1DB954" textAlign="center">Statify</Heading>
     <Text mt={[4, 6, 8]} fontSize={["md", "lg", "xl"]} textAlign="center" p={[4, 6, 8]}>
-      Welcome to Statify! Statify is a higher or lower guessing game where you guess if a random Spotify artist has a higher or lower amount of monthly listeners than the current Spotify artist.
+      Statify is a higher or lower guessing game where you guess if a random Spotify artist has a higher or lower amount of monthly listeners than the current Spotify artist.
     </Text>
     <Text mt={[4, 6, 8]} fontSize={["md", "lg", "xl"]} textAlign="center" p={[4, 6, 8]}>
       How high of a streak can you get?
     </Text>
     <Button mt={[4, 6, 8]} size="lg" colorScheme="spotifyGreen" onClick={() => setCurrentPage('game')}>Start Game</Button>
 
-    <Box position="absolute" bottom="60" bg="gray" px="3" py="1" borderRadius="md" boxShadow="sm">
+    <Box position="relative" bottom="-10" bg="gray" px="3" py="1" borderRadius="md" boxShadow="sm">
       <Text textAlign="center" fontSize="sm">
-        Contact me: <a href="mailto:adrianlanier33@gmail.com">adrianlanier33@gmail.com</a>
+        Contact us: <a href="mailto:statify.lol@gmail.com">statify.lol@gmail.com</a>
       </Text>
     </Box>
   </Flex>
