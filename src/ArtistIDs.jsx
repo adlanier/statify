@@ -1,6 +1,6 @@
 export const OG_ARTIST_IDS = [
     '6eUKZXaKkcviH0Ku9w2n3V', '3TVXtAsR1Inumwj472S9r4', '246dkjvS1zLTtiykXe5h60', 
-    '2YZyLoL8N0Wb9xBt1NhZWg','06HL4z0CvFAxyc27GXpf02','6qqNVTkY8uBg9cP3Jd7DAH',
+    '2YZyLoL8N0Wb9xBt1NhZWg',,'6qqNVTkY8uBg9cP3Jd7DAH',
     '66CXWjxzNUsdJxJ2JdwvnR', '06HL4z0CvFAxyc27GXpf02','1uNFoZAHBGtllmzznpCI3s', 
     '6qqNVTkY8uBg9cP3Jd7DAH', '1Xyo4u8uXC1ZmMpatF05PJ','4V8LLVI7PbaPR0K2TGSxFF',
     '6M2wZ9GZgrQXHCFfjv46we', '4q3ewBCX7sLwd24euuV69X', '1vyhD5VmyZ7KMfW5gqLgo5', '7n2wHs1TKAczGzO7Dd2rGr',
