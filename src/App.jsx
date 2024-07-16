@@ -1,4 +1,4 @@
-import { Box, Button, ChakraProvider, Flex, Heading, Text, Stack, Progress } from '@chakra-ui/react';
+import { ChakraProvider } from '@chakra-ui/react';
 import axios from 'axios';
 import { useEffect, useState, useRef } from 'react';
 import './App.css';
